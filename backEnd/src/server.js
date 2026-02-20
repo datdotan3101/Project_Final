@@ -3,6 +3,9 @@ import cors from "cors";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
+import courseRoutes from "./routes/course.routes.js";
+import enrollmentRoutes from "./routes/enrollment.routes.js";
+import progressRoutes from "./routes/progress.routes.js";
 
 dotenv.config();
 
@@ -21,12 +24,20 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ message: "Server is running smoothly!" });
 });
 
+// Authentication
 app.use("/api/auth", authRoutes);
+
+// User
 app.use("/api/users", userRoutes);
 
-// Chỗ này sau sẽ import các routes
-// app.use('/api/auth', authRoutes);
-// app.use('/api/courses', courseRoutes);
+// Course
+app.use("/api/courses", courseRoutes);
+
+// Payment
+app.use("/api", enrollmentRoutes);
+
+// Progress
+app.use("/api/progress", progressRoutes);
 
 const PORT = process.env.PORT || 5000;
 
