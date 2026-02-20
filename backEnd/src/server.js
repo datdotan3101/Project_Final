@@ -6,6 +6,8 @@ import userRoutes from "./routes/user.routes.js";
 import courseRoutes from "./routes/course.routes.js";
 import enrollmentRoutes from "./routes/enrollment.routes.js";
 import progressRoutes from "./routes/progress.routes.js";
+import reviewRoutes from "./routes/review.routes.js";
+import chatRoutes from "./routes/chat.routes.js";
 
 dotenv.config();
 
@@ -38,6 +40,12 @@ app.use("/api", enrollmentRoutes);
 
 // Progress
 app.use("/api/progress", progressRoutes);
+
+// Review
+app.use("/api/reviews", reviewRoutes);
+
+// Chatbot
+app.use("/api/chat", chatRoutes);
 
 const PORT = process.env.PORT || 5000;
 

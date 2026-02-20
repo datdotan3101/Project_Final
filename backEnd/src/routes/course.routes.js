@@ -7,6 +7,12 @@ import {
   createLesson,
   getAllCourses,
   getCourseById,
+  updateCourse,
+  updateSection,
+  updateLesson, 
+  deleteCourse,
+  deleteSection,
+  deleteLesson
 } from "../controllers/course.controller.js";
 
 const router = express.Router();
@@ -40,5 +46,46 @@ router.post(
 router.get("/", getAllCourses);
 
 router.get("/:courseId", getCourseById);
+
+router.put(
+  "/:id",
+  authenticate,
+  authorize("LECTURER", "ADMIN"),
+  upload.single("thumbnail"),
+  updateCourse,
+);
+router.put(
+  "/sections/:sectionId",
+  authenticate,
+  authorize("LECTURER", "ADMIN"),
+  updateSection,
+);
+router.put(
+  "/lessons/:lessonId",
+  authenticate,
+  authorize("LECTURER", "ADMIN"),
+  upload.single("video"),
+  updateLesson,
+);
+
+// --- ROUTES DELETE (XÓA) ---
+router.delete(
+  "/:id",
+  authenticate,
+  authorize("LECTURER", "ADMIN"),
+  deleteCourse,
+);
+router.delete(
+  "/sections/:sectionId",
+  authenticate,
+  authorize("LECTURER", "ADMIN"),
+  deleteSection,
+);
+router.delete(
+  "/lessons/:lessonId",
+  authenticate,
+  authorize("LECTURER", "ADMIN"),
+  deleteLesson,
+);
 
 export default router;

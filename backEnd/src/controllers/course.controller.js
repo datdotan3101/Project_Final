@@ -168,3 +168,179 @@ export const getCourseById = async (req, res) => {
     res.status(500).json({ message: 'Lỗi khi lấy chi tiết khóa học.' });
   }
 };
+
+// ==================== CẬP NHẬT (UPDATE) ====================
+
+// [PUT] Sửa khóa học
+export const updateCourse = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, price, status } = req.body;
+
+    const course = await prisma.course.findUnique({ where: { id: parseInt(id) } });
+    
+    if (!course) return res.status(404).json({ message: 'Không tìm thấy khóa học!' });
+    if (course.lecturer_id !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Bạn không có quyền sửa khóa học này!' });
+    }
+
+    const updateData = {
+      title,
+      description,
+      price: price ? parseFloat(price) : undefined,
+    };
+
+    // Nếu Lecturer là người sửa, tự động chuyển status về PENDING để Admin duyệt lại
+    if (req.user.role === 'LECTURER') {
+      updateData.status = 'PENDING';
+    } else if (req.user.role === 'ADMIN' && status) {
+      updateData.status = status; // Admin có quyền set thẳng status
+    }
+
+    // Nếu có upload ảnh mới
+    if (req.file) {
+      updateData.thumbnail_url = `/uploads/${req.file.filename}`;
+    }
+
+    const updatedCourse = await prisma.course.update({
+      where: { id: parseInt(id) },
+      data: updateData
+    });
+
+    res.status(200).json({ message: 'Cập nhật khóa học thành công!', course: updatedCourse });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Lỗi khi cập nhật khóa học.' });
+  }
+};
+
+// [PUT] Sửa Section
+export const updateSection = async (req, res) => {
+  try {
+    const { sectionId } = req.params;
+    const { title, order_index } = req.body;
+
+    const section = await prisma.section.findUnique({
+      where: { id: parseInt(sectionId) },
+      include: { course: true }
+    });
+
+    if (!section) return res.status(404).json({ message: 'Không tìm thấy Section!' });
+    if (section.course.lecturer_id !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Bạn không có quyền sửa section này!' });
+    }
+
+    const updatedSection = await prisma.section.update({
+      where: { id: parseInt(sectionId) },
+      data: {
+        title,
+        order_index: order_index ? parseInt(order_index) : undefined
+      }
+    });
+
+    res.status(200).json({ message: 'Cập nhật section thành công!', section: updatedSection });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi cập nhật section.' });
+  }
+};
+
+// [PUT] Sửa Lesson
+export const updateLesson = async (req, res) => {
+  try {
+    const { lessonId } = req.params;
+    const { title, content_type, order_index, text_content } = req.body;
+
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: parseInt(lessonId) },
+      include: { section: { include: { course: true } } }
+    });
+
+    if (!lesson) return res.status(404).json({ message: 'Không tìm thấy bài học!' });
+    if (lesson.section.course.lecturer_id !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Bạn không có quyền sửa bài học này!' });
+    }
+
+    const updateData = {
+      title,
+      order_index: order_index ? parseInt(order_index) : undefined,
+      content_type
+    };
+
+    if (content_type === 'VIDEO' && req.file) {
+      updateData.content_url_or_text = `/uploads/${req.file.filename}`;
+    } else if (content_type === 'TEXT' && text_content) {
+      updateData.content_url_or_text = text_content;
+    }
+
+    const updatedLesson = await prisma.lesson.update({
+      where: { id: parseInt(lessonId) },
+      data: updateData
+    });
+
+    res.status(200).json({ message: 'Cập nhật bài học thành công!', lesson: updatedLesson });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi cập nhật bài học.' });
+  }
+};
+
+// ==================== XÓA (DELETE) ====================
+
+// [DELETE] Xóa Khóa học (Prisma Cascade sẽ tự xóa luôn Section và Lesson bên trong)
+export const deleteCourse = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const course = await prisma.course.findUnique({ where: { id: parseInt(id) } });
+
+    if (!course) return res.status(404).json({ message: 'Không tìm thấy khóa học!' });
+    if (course.lecturer_id !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Bạn không có quyền xóa khóa học này!' });
+    }
+
+    await prisma.course.delete({ where: { id: parseInt(id) } });
+    res.status(200).json({ message: 'Đã xóa khóa học thành công!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi xóa khóa học.' });
+  }
+};
+
+// [DELETE] Xóa Section
+export const deleteSection = async (req, res) => {
+  try {
+    const { sectionId } = req.params;
+    const section = await prisma.section.findUnique({
+      where: { id: parseInt(sectionId) },
+      include: { course: true }
+    });
+
+    if (!section) return res.status(404).json({ message: 'Không tìm thấy Section!' });
+    if (section.course.lecturer_id !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Bạn không có quyền xóa section này!' });
+    }
+
+    await prisma.section.delete({ where: { id: parseInt(sectionId) } });
+    res.status(200).json({ message: 'Đã xóa section thành công!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi xóa section.' });
+  }
+};
+
+// [DELETE] Xóa Lesson
+export const deleteLesson = async (req, res) => {
+  try {
+    const { lessonId } = req.params;
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: parseInt(lessonId) },
+      include: { section: { include: { course: true } } }
+    });
+
+    if (!lesson) return res.status(404).json({ message: 'Không tìm thấy bài học!' });
+    if (lesson.section.course.lecturer_id !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Bạn không có quyền xóa bài học này!' });
+    }
+
+    await prisma.lesson.delete({ where: { id: parseInt(lessonId) } });
+    res.status(200).json({ message: 'Đã xóa bài học thành công!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi xóa bài học.' });
+  }
+};
