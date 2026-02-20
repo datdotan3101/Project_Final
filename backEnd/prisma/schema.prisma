@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  STUDENT
+  LECTURER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING_LECTURER
+}
+
+enum CourseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ContentType {
+  VIDEO
+  TEXT
+}
+
+model User {
+  id            Int              @id @default(autoincrement())
+  name          String
+  email         String           @unique
+  password_hash String
+  role          Role             @default(STUDENT)
+  status        UserStatus       @default(ACTIVE)
+  
+  // Relations
+  courses       Course[]         @relation("LecturerCourses")
+  enrollments   Enrollment[]
+  reviews       Review[]
+  progress      LessonProgress[]
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model Course {
+  id            Int          @id @default(autoincrement())
+  title         String
+  description   String?
+  price         Float        @default(0)
+  thumbnail_url String?
+  status        CourseStatus @default(PENDING)
+  
+  // Relations
+  lecturer_id   Int
+  lecturer      User         @relation("LecturerCourses", fields: [lecturer_id], references: [id])
+  sections      Section[]
+  enrollments   Enrollment[]
+  reviews       Review[]
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Section {
+  id          Int      @id @default(autoincrement())
+  title       String
+  order_index Int      @default(0)
+  
+  // Relations
+  course_id   Int
+  course      Course   @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Lesson {
+  id                  Int          @id @default(autoincrement())
+  title               String
+  content_type        ContentType  @default(VIDEO)
+  content_url_or_text String
+  order_index         Int          @default(0)
+
+  // Relations
+  section_id          Int
+  section             Section      @relation(fields: [section_id], references: [id], onDelete: Cascade)
+  progress            LessonProgress[]
+
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+}
+
+model Enrollment {
+  id          Int      @id @default(autoincrement())
+  
+  // Relations
+  student_id  Int
+  student     User     @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  course_id   Int
+  course      Course   @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  purchasedAt DateTime @default(now())
+
+  @@unique([student_id, course_id]) // Đảm bảo 1 user không mua trùng 1 khóa học
+}
+
+model Review {
+  id          Int      @id @default(autoincrement())
+  rating      Int      // 1 đến 5
+  comment     String?
+
+  // Relations
+  student_id  Int
+  student     User     @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  course_id   Int
+  course      Course   @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([student_id, course_id]) // Mỗi user chỉ đánh giá 1 lần cho 1 khóa
+}
+
+model LessonProgress {
+  id           Int      @id @default(autoincrement())
+  is_completed Boolean  @default(true)
+  
+  // Relations
+  student_id   Int
+  student      User     @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  lesson_id    Int
+  lesson       Lesson   @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+
+  completedAt  DateTime @default(now())
+
+  @@unique([student_id, lesson_id]) // Tránh duplicate trạng thái hoàn thành của 1 bài học
+}
