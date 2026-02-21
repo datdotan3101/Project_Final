@@ -1,710 +1,433 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
+import CurriculumManager from "../components/CurriculumManager";
 
 const CourseEditor = () => {
-  const navigate = useNavigate();
   const { id } = useParams();
+  const navigate = useNavigate();
   const isEditMode = Boolean(id);
 
-  const [activeTab, setActiveTab] = useState("curriculum");
-  const [isSaving, setIsSaving] = useState(false);
+  const [step, setStep] = useState(1);
 
-  // --- STATE: BASIC INFO & PRICING ---
   const [formData, setFormData] = useState({
     title: "",
-    subtitle: "",
+    category: "programming",
+    difficulty: "all",
     description: "",
-    category: "Development",
-    price: "",
-    thumbnail: null,
+    price: 0,
   });
-  const [imagePreview, setImagePreview] = useState(null);
 
-  // --- STATE: CURRICULUM BUILDER ---
-  const [curriculum, setCurriculum] = useState([]);
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null); // State mới để lưu link ảnh preview
 
-  // STATE MỚI: Quản lý xem bài học nào đang được mở ra để up video
-  const [expandedLessonId, setExpandedLessonId] = useState(null);
-
-  // --- STATE: DRAG & DROP LESSONS ---
-  const [dragItem, setDragItem] = useState(null);
-  const [dragOverItem, setDragOverItem] = useState(null);
+  const [loading, setLoading] = useState(isEditMode);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (isEditMode) {
-      const fetchedData = {
-        title: "2024 Complete Python Bootcamp: From Zero to Hero",
-        subtitle: "Learn Python like a Professional...",
-        description: "Đây là mô tả chi tiết...",
-        category: "Development",
-        price: "12.99",
-        thumbnail:
-          "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?auto=format&fit=crop&w=600&q=80",
-      };
-      setFormData(fetchedData);
-      setImagePreview(fetchedData.thumbnail);
+      const fetchCourse = async () => {
+        try {
+          const res = await axios.get(
+            `http://localhost:5000/api/courses/${id}`,
+          );
+          setFormData({
+            title: res.data.title,
+            description: res.data.description,
+            price: res.data.price,
+          });
 
-      // Thêm trường videoName để lưu tên video đã upload
-      setCurriculum([
-        {
-          id: "sec-1",
-          title: "Course Overview",
-          lessons: [
-            {
-              id: "les-1",
-              title: "Introduction to the course",
-              videoFile: null,
-              videoName: "intro-video.mp4",
-            },
-            {
-              id: "les-2",
-              title: "Course FAQs",
-              videoFile: null,
-              videoName: "",
-            },
-            {
-              id: "les-3",
-              title: "Setup Environment",
-              videoFile: null,
-              videoName: "",
-            },
-          ],
-        },
-        {
-          id: "sec-2",
-          title: "Python Basics",
-          lessons: [
-            {
-              id: "les-4",
-              title: "Variables and Data Types",
-              videoFile: null,
-              videoName: "",
-            },
-            {
-              id: "les-5",
-              title: "Numbers and Math",
-              videoFile: null,
-              videoName: "",
-            },
-          ],
-        },
-      ]);
-    } else {
-      setCurriculum([
-        { id: `sec-${Date.now()}`, title: "Section 1", lessons: [] },
-      ]);
-    }
-  }, [id, isEditMode]);
-
-  // ==========================================
-  // HÀM XỬ LÝ: BASIC INFO
-  // ==========================================
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, thumbnail: file }));
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
-    }
-  };
-
-  // ==========================================
-  // HÀM XỬ LÝ: DRAG AND DROP (KÉO THẢ)
-  // ==========================================
-  const handleDragStart = (e, sectionId, lessonIndex) => {
-    setDragItem({ sectionId, lessonIndex });
-    setExpandedLessonId(null); // Đóng khung upload khi bắt đầu kéo
-    setTimeout(() => {
-      e.target.classList.add("opacity-30");
-    }, 0);
-  };
-
-  const handleDragEnter = (e, sectionId, lessonIndex) => {
-    e.preventDefault();
-    setDragOverItem({ sectionId, lessonIndex });
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
-  const handleDragEnd = (e) => {
-    e.target.classList.remove("opacity-30");
-
-    if (!dragItem || !dragOverItem) {
-      setDragItem(null);
-      setDragOverItem(null);
-      return;
-    }
-
-    const newCurriculum = [...curriculum];
-    const sourceSectionIdx = newCurriculum.findIndex(
-      (s) => s.id === dragItem.sectionId,
-    );
-    const targetSectionIdx = newCurriculum.findIndex(
-      (s) => s.id === dragOverItem.sectionId,
-    );
-
-    const sourceLessons = [...newCurriculum[sourceSectionIdx].lessons];
-    const targetLessons =
-      sourceSectionIdx === targetSectionIdx
-        ? sourceLessons
-        : [...newCurriculum[targetSectionIdx].lessons];
-
-    const [draggedLesson] = sourceLessons.splice(dragItem.lessonIndex, 1);
-    targetLessons.splice(dragOverItem.lessonIndex, 0, draggedLesson);
-
-    newCurriculum[sourceSectionIdx].lessons = sourceLessons;
-    if (sourceSectionIdx !== targetSectionIdx) {
-      newCurriculum[targetSectionIdx].lessons = targetLessons;
-    }
-
-    setCurriculum(newCurriculum);
-    setDragItem(null);
-    setDragOverItem(null);
-  };
-
-  // ==========================================
-  // HÀM XỬ LÝ: CURRICULUM BUILDER (THÊM/SỬA/XÓA)
-  // ==========================================
-  const handleAddSection = () => {
-    const newSection = {
-      id: `sec-${Date.now()}`,
-      title: `New Section`,
-      lessons: [],
-    };
-    setCurriculum([...curriculum, newSection]);
-  };
-
-  const handleSectionTitleChange = (sectionId, newTitle) => {
-    setCurriculum(
-      curriculum.map((sec) =>
-        sec.id === sectionId ? { ...sec, title: newTitle } : sec,
-      ),
-    );
-  };
-
-  const handleDeleteSection = (sectionId) => {
-    if (window.confirm("Xóa Section này và toàn bộ bài học bên trong?")) {
-      setCurriculum(curriculum.filter((sec) => sec.id !== sectionId));
-    }
-  };
-
-  const handleAddLesson = (sectionId) => {
-    const newLesson = {
-      id: `les-${Date.now()}`,
-      title: `New Lesson`,
-      videoFile: null,
-      videoName: "",
-    };
-    setCurriculum(
-      curriculum.map((sec) =>
-        sec.id === sectionId
-          ? { ...sec, lessons: [...sec.lessons, newLesson] }
-          : sec,
-      ),
-    );
-  };
-
-  const handleLessonTitleChange = (sectionId, lessonId, newTitle) => {
-    setCurriculum(
-      curriculum.map((sec) => {
-        if (sec.id === sectionId) {
-          return {
-            ...sec,
-            lessons: sec.lessons.map((les) =>
-              les.id === lessonId ? { ...les, title: newTitle } : les,
-            ),
-          };
-        }
-        return sec;
-      }),
-    );
-  };
-
-  const handleDeleteLesson = (sectionId, lessonId) => {
-    setCurriculum(
-      curriculum.map((sec) => {
-        if (sec.id === sectionId) {
-          return {
-            ...sec,
-            lessons: sec.lessons.filter((les) => les.id !== lessonId),
-          };
-        }
-        return sec;
-      }),
-    );
-  };
-
-  // ==========================================
-  // HÀM XỬ LÝ: UPLOAD VIDEO CHO BÀI HỌC
-  // ==========================================
-  const handleVideoUpload = (e, sectionId, lessonId) => {
-    const file = e.target.files[0];
-    if (file) {
-      setCurriculum(
-        curriculum.map((sec) => {
-          if (sec.id === sectionId) {
-            return {
-              ...sec,
-              lessons: sec.lessons.map((les) =>
-                les.id === lessonId
-                  ? { ...les, videoFile: file, videoName: file.name }
-                  : les,
-              ),
-            };
+          // Nếu khóa học đã có ảnh bìa, hiển thị nó lên
+          if (res.data.thumbnail_url) {
+            setPreviewUrl(`http://localhost:5000${res.data.thumbnail_url}`);
           }
-          return sec;
-        }),
-      );
+
+          setLoading(false);
+        } catch (err) {
+          alert("Không thể tải thông tin khóa học!");
+          navigate("/lecturer/dashboard");
+        }
+      };
+      fetchCourse();
+    }
+  }, [id, isEditMode, navigate]);
+
+  const handleChange = (e) =>
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  // Hàm xử lý khi chọn file mới
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setThumbnailFile(file);
+      // Tạo một URL tạm thời để hiển thị ảnh ngay lập tức mà chưa cần up lên server
+      setPreviewUrl(URL.createObjectURL(file));
     }
   };
 
-  const handleRemoveVideo = (sectionId, lessonId) => {
-    setCurriculum(
-      curriculum.map((sec) => {
-        if (sec.id === sectionId) {
-          return {
-            ...sec,
-            lessons: sec.lessons.map((les) =>
-              les.id === lessonId
-                ? { ...les, videoFile: null, videoName: "" }
-                : les,
-            ),
-          };
-        }
-        return sec;
-      }),
-    );
+  const handleSaveAndContinue = async () => {
+    if (!formData.title) return alert("Vui lòng nhập tên khóa học");
+    setSaving(true);
+    try {
+      const token = localStorage.getItem("token");
+      const data = new FormData();
+      data.append("title", formData.title);
+      data.append("description", formData.description);
+      data.append("price", formData.price);
+      if (thumbnailFile) data.append("thumbnail", thumbnailFile);
+
+      if (isEditMode) {
+        await axios.put(`http://localhost:5000/api/courses/${id}`, data, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        setStep(2);
+      } else {
+        const response = await axios.post(
+          "http://localhost:5000/api/courses",
+          data,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          },
+        );
+        navigate(`/lecturer/course/edit/${response.data.course.id}`, {
+          replace: true,
+        });
+        setStep(2);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || "Có lỗi xảy ra!");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleSave = (e) => {
-    e.preventDefault();
-    setIsSaving(true);
-    const payload = { ...formData, curriculum: curriculum };
-    setTimeout(() => {
-      console.log("Saving data:", payload);
-      setIsSaving(false);
-      alert(isEditMode ? "Cập nhật thành công!" : "Tạo khóa học thành công!");
-      navigate("/instructor/dashboard");
-    }, 1000);
-  };
+  if (loading)
+    return (
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center text-white">
+        Đang tải...
+      </div>
+    );
 
   return (
-    <div className="bg-[#f6f6f8] dark:bg-[#101622] text-slate-900 dark:text-slate-100 font-sans min-h-screen flex flex-col">
-      {/* Header Bar */}
-      <header className="sticky top-0 z-50 h-16 bg-white dark:bg-[#111722] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 shadow-sm">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center justify-center p-2 text-slate-500 hover:text-[#135bec] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-          >
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-          <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
-          <h1 className="text-xl font-bold line-clamp-1">
-            {isEditMode
-              ? `Edit Course: ${formData.title}`
-              : "Create New Course"}
-          </h1>
+    <div className="min-h-screen bg-[#0f172a] text-slate-300 pb-20 font-sans">
+      {/* --- HEADER & PROGRESS BAR --- */}
+      <div className="bg-[#1e293b] border-b border-slate-800 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold">
+              C
+            </div>
+            <span className="font-bold text-white text-lg">Course Builder</span>
+          </div>
+          <div className="flex gap-4">
+            <button
+              onClick={() => navigate("/lecturer/dashboard")}
+              className="px-4 py-2 border border-slate-600 rounded text-sm hover:bg-slate-800 transition"
+            >
+              Exit
+            </button>
+            <button className="px-4 py-2 border border-slate-600 rounded text-sm bg-slate-800 hover:bg-slate-700 transition">
+              Save Draft
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button className="hidden sm:block px-4 py-2 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-            Save Draft
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center gap-2 bg-[#135bec] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold text-sm transition-all shadow-lg shadow-[#135bec]/20 disabled:opacity-70"
+        {/* Trục Step */}
+        <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center text-sm font-semibold text-slate-500">
+          <div
+            className={`flex flex-col gap-2 w-1/3 ${step >= 1 ? "text-blue-500" : ""}`}
           >
-            {isSaving ? (
-              <span className="material-symbols-outlined animate-spin text-[18px]">
-                progress_activity
+            <span className="flex items-center gap-2">
+              <span
+                className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${step > 1 ? "bg-green-500 text-white" : "border-2 border-current"}`}
+              >
+                {step > 1 && "✓"}
               </span>
-            ) : null}
-            {isEditMode ? "Update Course" : "Publish Course"}
-          </button>
-        </div>
-      </header>
+              STEP 1
+            </span>
+            <span className={`text-base ${step >= 1 ? "text-white" : ""}`}>
+              Course Planning
+            </span>
+            <div
+              className={`h-1 w-full rounded mt-1 ${step >= 1 ? "bg-blue-600" : "bg-slate-700"}`}
+            ></div>
+          </div>
 
-      {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-[1000px] mx-auto p-4 sm:p-6 lg:p-8">
-        {/* Tabs Navigation */}
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 mb-8 overflow-x-auto custom-scrollbar">
-          <button
-            onClick={() => setActiveTab("basic")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${activeTab === "basic" ? "border-[#135bec] text-[#135bec]" : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
+          <div
+            className={`flex flex-col gap-2 w-1/3 text-center items-center ${step >= 2 ? "text-blue-500" : ""}`}
           >
-            <span className="material-symbols-outlined text-[18px]">info</span>{" "}
-            Basic Info
-          </button>
-          <button
-            onClick={() => setActiveTab("curriculum")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${activeTab === "curriculum" ? "border-[#135bec] text-[#135bec]" : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
-          >
-            <span className="material-symbols-outlined text-[18px]">
-              menu_book
-            </span>{" "}
-            Curriculum
-          </button>
-          <button
-            onClick={() => setActiveTab("pricing")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${activeTab === "pricing" ? "border-[#135bec] text-[#135bec]" : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
-          >
-            <span className="material-symbols-outlined text-[18px]">
-              payments
-            </span>{" "}
-            Pricing & Publish
-          </button>
-        </div>
+            <span>STEP 2</span>
+            <span className={`text-base ${step >= 2 ? "text-white" : ""}`}>
+              Content Upload
+            </span>
+            <div
+              className={`h-1 w-[90%] rounded mt-1 ${step >= 2 ? "bg-blue-600" : "bg-slate-700"}`}
+            ></div>
+          </div>
 
-        {/* Form Container */}
-        <div className="bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-6 lg:p-8">
-          {/* TAB 1: BASIC INFO */}
-          {activeTab === "basic" && (
-            <div className="space-y-6 animate-fade-in">
+          <div
+            className={`flex flex-col gap-2 w-1/3 text-right items-end ${step >= 3 ? "text-blue-500" : ""}`}
+          >
+            <span>STEP 3</span>
+            <span className={`text-base ${step >= 3 ? "text-white" : ""}`}>
+              Publishing
+            </span>
+            <div
+              className={`h-1 w-full rounded mt-1 ${step >= 3 ? "bg-blue-600" : "bg-slate-700"}`}
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      {/* --- MAIN CONTENT AREA --- */}
+      <div className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Cột trái */}
+        <div className="lg:col-span-2 space-y-8">
+          {step === 1 && (
+            <>
               <div>
-                <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
-                  Course Title
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  placeholder="e.g. Learn React from Scratch"
-                  style={{ caretColor: "#135bec" }}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-[#101622] focus:bg-white dark:focus:bg-[#151e2e] focus:ring-2 focus:ring-[#135bec]/50 focus:border-[#135bec] outline-none transition-all text-slate-900 dark:text-white"
+                <h1 className="text-3xl font-bold text-white mb-2">
+                  Plan your new course
+                </h1>
+                <p className="text-slate-400">
+                  Start with the basics to help students discover your content.
+                </p>
+              </div>
+
+              {/* Box: Course Title & Category */}
+              <div className="bg-[#1e293b] p-6 rounded-lg border border-slate-700 space-y-5">
+                <div>
+                  <label className="block text-sm font-bold text-slate-300 mb-2">
+                    Course Title <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleChange}
+                    className="w-full bg-[#0f172a] border border-slate-600 rounded p-3 text-white focus:outline-none focus:border-blue-500"
+                    placeholder="e.g. Complete Python Bootcamp..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-300 mb-2">
+                      Giá tiền (VNĐ)
+                    </label>
+                    <input
+                      type="number"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleChange}
+                      className="w-full bg-[#0f172a] border border-slate-600 rounded p-3 text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-300 mb-2">
+                      Difficulty Level
+                    </label>
+                    <select className="w-full bg-[#0f172a] border border-slate-600 rounded p-3 text-white focus:outline-none focus:border-blue-500">
+                      <option>All Levels</option>
+                      <option>Beginner</option>
+                      <option>Intermediate</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Box: Description */}
+              <div className="bg-[#1e293b] p-6 rounded-lg border border-slate-700">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-sm font-bold text-slate-300">
+                    Course Description
+                  </label>
+                  <button className="text-blue-500 text-xs font-bold flex items-center gap-1">
+                    <span className="text-lg">✨</span> AI Generate
+                  </button>
+                </div>
+                <div className="bg-[#0f172a] border border-slate-600 rounded-t p-2 flex gap-3 text-slate-400 border-b-0">
+                  <button className="hover:text-white font-bold">B</button>
+                  <button className="hover:text-white italic">I</button>
+                  <button className="hover:text-white underline">U</button>
+                  <button className="hover:text-white ml-2">🔗</button>
+                </div>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows="6"
+                  className="w-full bg-[#0f172a] border border-slate-600 rounded-b p-3 text-white focus:outline-none focus:border-blue-500"
+                  placeholder="Describe what students will learn in your course..."
                 />
               </div>
 
-              {/* ... (Các thẻ Subtitle, Category, Description, Image giữ nguyên) ... */}
-              <div>
-                <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
-                  Course Image
-                </label>
-                <div className="mt-1 relative flex justify-center border-2 border-slate-300 dark:border-slate-600 border-dashed rounded-xl bg-slate-50 dark:bg-[#101622] hover:bg-slate-100 dark:hover:bg-[#151e2e] transition-colors group overflow-hidden h-64">
-                  {imagePreview ? (
-                    <div className="w-full h-full relative">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
-                      <label
-                        htmlFor="file-upload"
-                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer backdrop-blur-sm text-white"
-                      >
-                        <span className="material-symbols-outlined text-4xl mb-2">
-                          change_circle
-                        </span>
-                        <span className="font-bold">Click to change image</span>
-                      </label>
-                    </div>
+              {/* ================= THUMBNAIL BOX NÂNG CẤP ================= */}
+              <div className="bg-[#1e293b] p-6 rounded-lg border border-slate-700 flex flex-col md:flex-row gap-6 items-start md:items-center">
+                {/* Khu vực hiển thị ảnh hoặc Icon Cloud */}
+                <div className="w-40 h-24 bg-[#0f172a] border border-dashed border-slate-600 rounded flex items-center justify-center text-slate-500 overflow-hidden shrink-0">
+                  {previewUrl ? (
+                    <img
+                      src={previewUrl}
+                      alt="Thumbnail preview"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
-                    <div className="space-y-1 text-center flex flex-col items-center justify-center w-full h-full cursor-pointer">
-                      <span className="material-symbols-outlined text-4xl text-slate-400 group-hover:text-[#135bec] transition-colors">
-                        cloud_upload
-                      </span>
-                      <div className="flex text-sm text-slate-600 dark:text-slate-400 justify-center">
-                        <label
-                          htmlFor="file-upload"
-                          className="relative cursor-pointer rounded-md font-medium text-[#135bec] hover:text-blue-500 focus-within:outline-none"
-                        >
-                          <span>Upload a file</span>
-                        </label>
-                      </div>
-                    </div>
-                  )}
-                  <input
-                    id="file-upload"
-                    type="file"
-                    className="sr-only"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: CURRICULUM DRAG & DROP & VIDEO UPLOAD */}
-          {activeTab === "curriculum" && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="font-bold text-lg">Curriculum Builder</h3>
-                  <p className="text-sm text-slate-500">
-                    Hold the dots icon to drag and reorder lessons.
-                  </p>
-                </div>
-                <button
-                  onClick={handleAddSection}
-                  className="px-4 py-2 border border-[#135bec] text-[#135bec] font-bold rounded-lg hover:bg-[#135bec]/10 transition-colors text-sm flex items-center gap-2"
-                >
-                  <span className="material-symbols-outlined text-[18px]">
-                    add
-                  </span>{" "}
-                  Add Section
-                </button>
-              </div>
-
-              {curriculum.length === 0 ? (
-                <div className="p-8 text-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl text-slate-500">
-                  Chưa có nội dung nào. Hãy bấm "Add Section" để bắt đầu.
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {curriculum.map((section, sectionIndex) => (
-                    <div
-                      key={section.id}
-                      className="border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-[#151e2e] overflow-hidden group"
+                    <svg
+                      className="w-8 h-8 opacity-70"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
                     >
-                      {/* Section Header */}
-                      <div className="p-4 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center gap-3">
-                        <span className="material-symbols-outlined text-slate-400">
-                          folder
-                        </span>
-                        <span className="font-bold text-sm whitespace-nowrap">
-                          Section {sectionIndex + 1}:
-                        </span>
-                        <input
-                          type="text"
-                          value={section.title}
-                          onChange={(e) =>
-                            handleSectionTitleChange(section.id, e.target.value)
-                          }
-                          placeholder="Enter section title..."
-                          style={{ caretColor: "#135bec" }}
-                          className="flex-1 bg-transparent border-none focus:bg-white dark:focus:bg-[#1e293b] focus:ring-1 focus:ring-[#135bec] px-2 py-1 text-sm font-bold outline-none rounded transition-colors text-slate-900 dark:text-white"
-                        />
-                        <button
-                          onClick={() => handleDeleteSection(section.id)}
-                          className="text-slate-400 hover:text-rose-500 p-1 transition-colors"
-                          title="Delete Section"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">
-                            delete
-                          </span>
-                        </button>
-                      </div>
-
-                      {/* Lessons List (Vùng kéo thả) */}
-                      <div className="p-4 space-y-3">
-                        {section.lessons.map((lesson, lessonIndex) => {
-                          const isDragOver =
-                            dragOverItem?.sectionId === section.id &&
-                            dragOverItem?.lessonIndex === lessonIndex;
-                          const isExpanded = expandedLessonId === lesson.id;
-
-                          return (
-                            <div
-                              key={lesson.id}
-                              draggable
-                              onDragStart={(e) =>
-                                handleDragStart(e, section.id, lessonIndex)
-                              }
-                              onDragEnter={(e) =>
-                                handleDragEnter(e, section.id, lessonIndex)
-                              }
-                              onDragOver={handleDragOver}
-                              onDragEnd={handleDragEnd}
-                              className={`flex flex-col bg-white dark:bg-[#1e293b] border rounded-lg transition-all select-none
-                                ${isDragOver ? "border-[#135bec] border-t-4 shadow-md transform -translate-y-1" : "border-slate-200 dark:border-slate-700"}
-                                ${isExpanded ? "ring-1 ring-[#135bec]" : "hover:border-[#135bec]/30"}
-                              `}
-                            >
-                              {/* Thanh bài học chính */}
-                              <div className="flex items-center gap-3 p-2 group/lesson">
-                                <span className="material-symbols-outlined text-slate-400 group-hover/lesson:text-[#135bec] transition-colors text-[18px] ml-1 cursor-grab active:cursor-grabbing">
-                                  drag_indicator
-                                </span>
-
-                                <span className="material-symbols-outlined text-[#135bec] text-[18px]">
-                                  play_circle
-                                </span>
-
-                                <input
-                                  type="text"
-                                  value={lesson.title}
-                                  onChange={(e) =>
-                                    handleLessonTitleChange(
-                                      section.id,
-                                      lesson.id,
-                                      e.target.value,
-                                    )
-                                  }
-                                  placeholder="Enter lesson title..."
-                                  style={{ caretColor: "#135bec" }}
-                                  className="flex-1 bg-transparent border-none focus:bg-slate-50 dark:focus:bg-[#101622] focus:ring-1 focus:ring-[#135bec] px-2 py-1 text-sm outline-none rounded transition-colors text-slate-900 dark:text-white"
-                                />
-
-                                {/* Nút bật/tắt khung Add Video */}
-                                <button
-                                  onClick={() =>
-                                    setExpandedLessonId(
-                                      isExpanded ? null : lesson.id,
-                                    )
-                                  }
-                                  className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${lesson.videoName ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"}`}
-                                >
-                                  <span className="material-symbols-outlined text-[14px]">
-                                    {lesson.videoName ? "check_circle" : "add"}
-                                  </span>
-                                  {lesson.videoName
-                                    ? "Video Added"
-                                    : "Add Video"}
-                                </button>
-
-                                <button
-                                  onClick={() =>
-                                    handleDeleteLesson(section.id, lesson.id)
-                                  }
-                                  className="text-slate-400 hover:text-rose-500 p-1 opacity-0 group-hover/lesson:opacity-100 transition-all ml-2"
-                                  title="Delete Lesson"
-                                >
-                                  <span className="material-symbols-outlined text-[16px]">
-                                    delete
-                                  </span>
-                                </button>
-                              </div>
-
-                              {/* Khu vực Upload Video Xổ Xuống */}
-                              {isExpanded && (
-                                <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#101622] rounded-b-lg ml-8 mr-2 mb-2">
-                                  <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
-                                    Upload Video
-                                  </label>
-
-                                  {lesson.videoName ? (
-                                    // Đã có video
-                                    <div className="flex items-center justify-between bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 p-3 rounded-lg">
-                                      <div className="flex items-center gap-3 overflow-hidden">
-                                        <div className="p-2 bg-[#135bec]/10 rounded-lg text-[#135bec] flex items-center justify-center">
-                                          <span className="material-symbols-outlined text-[20px]">
-                                            movie
-                                          </span>
-                                        </div>
-                                        <span className="text-sm font-medium truncate text-slate-900 dark:text-white">
-                                          {lesson.videoName}
-                                        </span>
-                                      </div>
-                                      <button
-                                        onClick={() =>
-                                          handleRemoveVideo(
-                                            section.id,
-                                            lesson.id,
-                                          )
-                                        }
-                                        className="text-slate-400 hover:text-rose-500 p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
-                                      >
-                                        <span className="material-symbols-outlined text-[18px]">
-                                          delete
-                                        </span>
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    // Chưa có video -> Hiện khung upload
-                                    <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 dark:border-slate-600 border-dashed rounded-lg bg-white dark:bg-[#1e293b] hover:bg-slate-50 dark:hover:bg-[#151e2e] transition-colors relative">
-                                      <div className="space-y-1 text-center">
-                                        <span className="material-symbols-outlined text-3xl text-slate-400">
-                                          video_file
-                                        </span>
-                                        <div className="flex text-sm text-slate-600 dark:text-slate-400 justify-center">
-                                          <label className="relative cursor-pointer rounded-md font-medium text-[#135bec] hover:text-blue-500 focus-within:outline-none">
-                                            <span>Click to select a video</span>
-                                            <input
-                                              type="file"
-                                              accept="video/mp4,video/x-m4v,video/*"
-                                              className="sr-only"
-                                              onChange={(e) =>
-                                                handleVideoUpload(
-                                                  e,
-                                                  section.id,
-                                                  lesson.id,
-                                                )
-                                              }
-                                            />
-                                          </label>
-                                        </div>
-                                        <p className="text-xs text-slate-500 mt-1">
-                                          MP4, WebM format (Max 2GB)
-                                        </p>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-
-                        {/* Vùng thả cuối cùng nếu Section đang rỗng hoặc thả xuống cuối danh sách */}
-                        <div
-                          className={`h-4 rounded-lg mt-2 transition-colors ${dragOverItem?.sectionId === section.id && dragOverItem?.lessonIndex === section.lessons.length ? "bg-[#135bec]/20 border-2 border-dashed border-[#135bec]" : "bg-transparent"}`}
-                          onDragEnter={(e) =>
-                            handleDragEnter(
-                              e,
-                              section.id,
-                              section.lessons.length,
-                            )
-                          }
-                          onDragOver={handleDragOver}
-                        ></div>
-
-                        {/* Add Lesson Button */}
-                        <button
-                          onClick={() => handleAddLesson(section.id)}
-                          className="flex items-center gap-2 text-sm font-bold text-[#135bec] hover:bg-[#135bec]/10 p-2 rounded transition-colors w-max mt-2"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">
-                            add
-                          </span>{" "}
-                          Add Lesson
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                      <path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H11V9.413l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13H5.5z"></path>
+                      <path d="M9 13h2v5a1 1 0 11-2 0v-5z"></path>
+                    </svg>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
 
-          {/* TAB 3: PRICING */}
-          {activeTab === "pricing" && (
-            <div className="space-y-6 animate-fade-in max-w-md">
-              <h3 className="font-bold text-lg mb-2">Pricing Settings</h3>
-              <div>
-                <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
-                  Course Price (USD)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">
-                    $
-                  </span>
-                  <input
-                    type="number"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleInputChange}
-                    placeholder="0.00"
-                    style={{ caretColor: "#135bec" }}
-                    className="w-full pl-8 pr-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-[#101622] focus:bg-white dark:focus:bg-[#151e2e] focus:ring-2 focus:ring-[#135bec]/50 focus:border-[#135bec] outline-none transition-all text-lg font-bold text-slate-900 dark:text-white"
-                  />
+                {/* Khu vực nút bấm và Text */}
+                <div className="flex-1">
+                  <h3 className="font-bold text-white mb-1">
+                    Course Thumbnail
+                  </h3>
+                  <p className="text-xs text-slate-400 mb-4">
+                    Upload your course image here. Important guidelines: 750x422
+                    pixels; .jpg, .jpeg, .gif, or .png. no text on the image.
+                  </p>
+                  <div className="flex items-center gap-4">
+                    {/* Nút Chọn File */}
+                    <label className="cursor-pointer bg-[#334155] hover:bg-[#475569] text-white text-sm font-semibold py-2.5 px-5 rounded-md transition duration-200 shadow-sm border border-slate-600">
+                      Choose File
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {/* Hiển thị tên file NỔI BẬT */}
+                    {thumbnailFile ? (
+                      <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 px-3 py-2 rounded-md max-w-[250px] shadow-inner">
+                        <span className="text-blue-400">🖼️</span>
+                        <span className="text-sm text-blue-400 font-bold truncate">
+                          {thumbnailFile.name}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-slate-500 font-medium">
+                        No file chosen
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+              {/* ========================================================= */}
+            </>
           )}
-        </div>
-      </main>
 
-      <style>{`.custom-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+          {step === 2 && <CurriculumManager courseId={id} />}
+        </div>
+
+        {/* Cột phải: Sidebar Tips */}
+        <div className="hidden lg:block space-y-6">
+          <div className="bg-gradient-to-b from-[#1e293b] to-[#0f172a] p-6 rounded-lg border border-blue-900/50 shadow-lg relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600 rounded-full blur-[80px] opacity-20"></div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 bg-blue-600/20 text-blue-400 rounded flex items-center justify-center">
+                🤖
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-sm">
+                  Course Assistant
+                </h3>
+                <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">
+                  AI Powered Tips
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-400 mb-4">
+              {step === 1
+                ? "Great titles are short and descriptive. Try to include 1-2 keywords that students might search for."
+                : "Micro-learning is trending! Try keeping video lectures under 6 minutes to maximize student retention."}
+            </p>
+            <div className="bg-[#0f172a] border border-slate-700 rounded p-4 mb-4">
+              <p className="text-[10px] text-slate-500 font-bold uppercase mb-2">
+                Suggestion
+              </p>
+              <p className="text-sm text-white italic">
+                {step === 1
+                  ? `"Mastering Python: From Beginner to Pro"`
+                  : "Start with a strong 'Hook'. Include a quiz every 3 videos."}
+              </p>
+            </div>
+            <button className="w-full py-2 border border-blue-600/50 text-blue-400 text-sm font-bold rounded hover:bg-blue-600/10 transition">
+              {step === 1 ? "Generate More Ideas" : "Analyze My Structure"}
+            </button>
+          </div>
+
+          <div className="bg-[#1e293b] p-6 rounded-lg border border-slate-700">
+            <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+              <span className="text-green-500">✓</span> Creation Checklist
+            </h3>
+            <ul className="space-y-3 text-sm">
+              <li className="text-slate-500 line-through">Create account</li>
+              <li
+                className={
+                  step === 1
+                    ? "text-white font-bold"
+                    : "text-slate-500 line-through"
+                }
+              >
+                Plan curriculum
+              </li>
+              <li
+                className={
+                  step === 2
+                    ? 'text-white font-bold relative pl-4 before:content-["•"] before:text-blue-500 before:absolute before:left-0'
+                    : "text-slate-500"
+                }
+              >
+                Record content
+              </li>
+              <li
+                className={
+                  step === 3 ? "text-white font-bold" : "text-slate-500"
+                }
+              >
+                Upload materials
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* --- STICKY BOTTOM FOOTER --- */}
+      <div className="fixed bottom-0 left-0 w-full bg-[#1e293b] border-t border-slate-800 p-4 z-50">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <button
+            onClick={() =>
+              step > 1 ? setStep(step - 1) : navigate("/lecturer/dashboard")
+            }
+            className="text-slate-400 hover:text-white font-bold text-sm flex items-center gap-2"
+          >
+            ← Back {step === 1 ? "to Dashboard" : "to Planning"}
+          </button>
+
+          <button
+            onClick={step === 1 ? handleSaveAndContinue : () => setStep(3)}
+            disabled={saving}
+            className="bg-blue-600 text-white px-6 py-2.5 rounded font-bold hover:bg-blue-700 transition flex items-center gap-2 shadow-lg shadow-blue-600/20"
+          >
+            {saving ? "Saving..." : "Save & Continue"} →
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

@@ -344,3 +344,22 @@ export const deleteLesson = async (req, res) => {
     res.status(500).json({ message: 'Lỗi khi xóa bài học.' });
   }
 };
+
+// [GET] Xem danh sách khóa học của chính Giảng viên đang đăng nhập
+export const getLecturerCourses = async (req, res) => {
+  try {
+    const courses = await prisma.course.findMany({
+      where: {
+        lecturer_id: req.user.id // Lọc theo ID của giảng viên từ token
+      },
+      orderBy: {
+        createdAt: 'desc' // Xếp khóa học mới nhất lên đầu
+      }
+    });
+
+    res.status(200).json(courses);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Lỗi khi lấy danh sách khóa học của bạn.' });
+  }
+};

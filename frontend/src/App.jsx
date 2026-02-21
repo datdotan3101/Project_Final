@@ -1,40 +1,129 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import CourseDetail from "./pages/CourseDetail";
 import Checkout from "./pages/CheckOut";
 import MyLearning from "./pages/MyLearning";
-import Learning from "./pages/Learning";
-import Cart from "./pages/Cart";
-import Wishlist from "./pages/Wishlist";
-import InstructorDashboard from "./pages/InstructorDashboard";
+import Navbar from "./components/Navbar";
+import Learn from "./pages/Learn";
+import LecturerDashboard from "./pages/LecturerDashboard";
 import CourseEditor from "./pages/CourseEditor";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/" element={<Home />} />
+    <Router>
+      <AuthProvider>
+        <Navbar />
+        <div className="min-h-screen bg-gray-50">
+          <Routes>
+            <Route
+              element={
+                <ProtectedRoute
+                  allowedRoles={["STUDENT", "LECTURER", "ADMIN"]}
+                />
+              }
+            >
+              <Route path="/learn/:id" element={<Learn />} />
+            </Route>
 
-        <Route path="/course/:id" element={<CourseDetail />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/my-learning" element={<MyLearning />} />
+            <Route
+              element={
+                <ProtectedRoute
+                  allowedRoles={["STUDENT", "LECTURER", "ADMIN"]}
+                />
+              }
+            >
+              <Route path="/learn/:id" element={<Learn />} />
+            </Route>
+            <Route path="/" element={<Home />} />
+            {/* ================= PUBLIC ROUTES (Ai cũng vào được) ================= */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route
+              path="/"
+              element={
+                <h1 className="text-center mt-10 text-2xl font-bold">
+                  Trang chủ (Khách & Học viên)
+                </h1>
+              }
+            />
 
-        <Route path="/learn/:id" element={<Learning />} />
+            {/* Thêm Route Chi Tiết Khóa Học */}
+            <Route path="/course/:id" element={<CourseDetail />} />
 
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/wishlist" element={<Wishlist />} />
+            {/* ================= STUDENT ROUTES (Chỉ cần đăng nhập là vào được) ================= */}
+            <Route
+              element={
+                <ProtectedRoute
+                  allowedRoles={["STUDENT", "LECTURER", "ADMIN"]}
+                />
+              }
+            >
+              {/* 2. Sửa lại Route /my-learning để gọi đúng Component */}
+              <Route path="/my-learning" element={<MyLearning />} />
 
-        <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
+              <Route path="/checkout/:id" element={<Checkout />} />
 
-        <Route path="/instructor/course/create" element={<CourseEditor />} />
-        <Route path="/instructor/course/edit/:id" element={<CourseEditor />} />
-      </Routes>
-    </BrowserRouter>
+              <Route
+                path="/profile"
+                element={
+                  <h1 className="text-center mt-10 text-xl">Hồ sơ cá nhân</h1>
+                }
+              />
+            </Route>
+
+            {/* ================= LECTURER ROUTES (Chỉ Giảng viên & Admin vào được) ================= */}
+            <Route
+              element={<ProtectedRoute allowedRoles={["LECTURER", "ADMIN"]} />}
+            >
+              <Route
+                path="/lecturer/dashboard"
+                element={<LecturerDashboard />}
+              />
+
+              <Route path="/lecturer/course/new" element={<CourseEditor />} />
+              <Route
+                path="/lecturer/course/edit/:id"
+                element={<CourseEditor />}
+              />
+              <Route
+                path="/lecturer/create-course"
+                element={
+                  <h1 className="text-center mt-10 text-xl">
+                    Trang tạo khóa học
+                  </h1>
+                }
+              />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <h1 className="text-center mt-10 text-2xl text-red-600 font-bold">
+                    Khu vực quản lý của ADMIN
+                  </h1>
+                }
+              />
+            </Route>
+
+            {/* Route 404 cho các đường dẫn không tồn tại */}
+            <Route
+              path="*"
+              element={
+                <h1 className="text-center mt-10 text-2xl">
+                  404 - Không tìm thấy trang
+                </h1>
+              }
+            />
+          </Routes>
+        </div>
+      </AuthProvider>
+    </Router>
   );
 }
 

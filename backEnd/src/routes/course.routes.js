@@ -9,10 +9,11 @@ import {
   getCourseById,
   updateCourse,
   updateSection,
-  updateLesson, 
+  updateLesson,
   deleteCourse,
   deleteSection,
-  deleteLesson
+  deleteLesson,
+  getLecturerCourses,
 } from "../controllers/course.controller.js";
 
 const router = express.Router();
@@ -24,6 +25,13 @@ router.post(
   authorize("LECTURER", "ADMIN"),
   upload.single("thumbnail"),
   createCourse,
+);
+
+router.get(
+  "/my-courses",
+  authenticate,
+  authorize("LECTURER", "ADMIN"),
+  getLecturerCourses,
 );
 
 // 2. LECTURER: Tạo Section trong khóa học

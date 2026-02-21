@@ -1,192 +1,157 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { Link } from "react-router-dom";
 
 const MyLearning = () => {
-  const [activeTab, setActiveTab] = useState("all");
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // Dữ liệu mô phỏng (Sau này mapping với dữ liệu từ getMyLearning controller)
-  const purchasedCourses = [
-    {
-      id: 1,
-      title: "2024 Complete Python Bootcamp: From Zero to Hero in Python",
-      image:
-        "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?auto=format&fit=crop&w=600&q=80",
-      instructor: "Jose Portilla",
-      progress: 35,
-      lastAccessed: "2 days ago",
-    },
-    {
-      id: 2,
-      title: "The Ultimate Graphic Design Course",
-      image:
-        "https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=600&q=80",
-      instructor: "Lindsay Marsh",
-      progress: 0,
-      lastAccessed: "Just now",
-    },
-    {
-      id: 3,
-      title: "Complete Web Development Bootcamp 2024",
-      image:
-        "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=600&q=80",
-      instructor: "Dr. Angela Yu",
-      progress: 100,
-      lastAccessed: "1 month ago",
-    },
-  ];
+  useEffect(() => {
+    const fetchMyCourses = async () => {
+      try {
+        // Lấy token từ Local Storage
+        const token = localStorage.getItem("token");
 
-  // Tối ưu: Dùng useMemo để lọc danh sách, tránh lọc lại khi render không cần thiết
-  const filteredCourses = useMemo(() => {
-    return purchasedCourses.filter((course) => {
-      if (activeTab === "progress")
-        return course.progress > 0 && course.progress < 100;
-      if (activeTab === "completed") return course.progress === 100;
-      return true;
-    });
-  }, [activeTab]);
+        // Gọi API lấy danh sách khóa học đã mua
+        const response = await axios.get(
+          "http://localhost:5000/api/my-learning",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        setEnrolledCourses(response.data);
+        setLoading(false);
+      } catch (err) {
+        console.error(err);
+        setError("Không thể tải danh sách khóa học của bạn lúc này.");
+        setLoading(false);
+      }
+    };
+
+    fetchMyCourses();
+  }, []);
 
   return (
-    <div className="bg-[#f6f6f8] dark:bg-[#101622] text-slate-900 dark:text-slate-100 font-sans min-h-screen flex flex-col">
-      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111722] px-6 lg:px-10 py-3 shadow-sm">
-        <div className="flex items-center gap-8">
-          <Link
-            to="/"
-            className="flex items-center gap-4 text-slate-900 dark:text-white"
-          >
-            <div className="size-8 flex items-center justify-center rounded bg-[#135bec]/20 text-[#135bec]">
-              <span className="material-symbols-outlined text-2xl">school</span>
-            </div>
-            <h2 className="text-lg font-bold hidden sm:block">EduMarket AI</h2>
-          </Link>
-          <label className="hidden md:flex flex-col w-[400px]">
-            <div className="flex w-full items-stretch rounded-full h-10 border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-[#1e293b] overflow-hidden focus-within:ring-2 focus-within:ring-[#135bec]/50">
-              <div className="text-slate-400 flex items-center justify-center pl-4">
-                <span className="material-symbols-outlined text-xl">
-                  search
-                </span>
-              </div>
-              <input
-                className="w-full bg-transparent border-none focus:ring-0 px-4 text-sm"
-                placeholder="Search your courses"
-              />
-            </div>
-          </label>
+    <div className="bg-gray-50 min-h-screen py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header của trang */}
+        <div className="mb-8 border-b border-gray-200 pb-5">
+          <h1 className="text-3xl font-bold text-gray-900">Khóa học của tôi</h1>
         </div>
-        <div className="flex items-center gap-6">
-          <Link
-            to="/"
-            className="hidden lg:block text-slate-600 dark:text-slate-300 hover:text-[#135bec] text-sm font-medium"
-          >
-            Explore Courses
-          </Link>
-          <div
-            className="size-9 rounded-full bg-cover bg-center border-2 border-slate-700"
-            style={{
-              backgroundImage:
-                "url('https://ui-avatars.com/api/?name=John+Doe&background=135bec&color=fff')",
-            }}
-          ></div>
-        </div>
-      </header>
 
-      <main className="flex-grow">
-        <div className="bg-[#1e293b] py-12 px-6 lg:px-10 text-white">
-          <div className="max-w-[1440px] mx-auto">
-            <h1 className="text-4xl font-bold mb-6">My Learning</h1>
-            <div className="flex items-center gap-6 text-sm font-bold border-b border-slate-700">
-              {["all", "progress", "completed"].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`pb-4 capitalize transition-colors ${activeTab === tab ? "text-[#135bec] border-b-2 border-[#135bec]" : "text-slate-400 hover:text-white"}`}
-                >
-                  {tab === "all"
-                    ? "All Courses"
-                    : tab === "progress"
-                      ? "In Progress"
-                      : "Completed"}
-                </button>
-              ))}
-            </div>
+        {/* Xử lý trạng thái Loading và Error */}
+        {loading ? (
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600 font-medium">
+              Đang tải tủ sách của bạn...
+            </p>
           </div>
-        </div>
+        ) : error ? (
+          <div className="bg-red-100 text-red-700 p-4 rounded-md text-center">
+            {error}
+          </div>
+        ) : enrolledCourses.length === 0 ? (
+          /* Trạng thái trống (Chưa mua khóa nào) */
+          <div className="text-center py-20 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col items-center justify-center">
+            <svg
+              className="w-20 h-20 text-gray-300 mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              ></path>
+            </svg>
+            <h2 className="text-2xl font-bold text-gray-700 mb-2">
+              Bạn chưa sở hữu khóa học nào
+            </h2>
+            <p className="text-gray-500 mb-6">
+              Hãy khám phá các khóa học hấp dẫn và bắt đầu hành trình học tập
+              ngay hôm nay!
+            </p>
+            <Link
+              to="/"
+              className="bg-blue-600 text-white px-6 py-3 rounded-md font-bold hover:bg-blue-700 transition"
+            >
+              Khám phá khóa học
+            </Link>
+          </div>
+        ) : (
+          /* Grid hiển thị danh sách khóa học đã mua */
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {enrolledCourses.map((item) => {
+              const course = item.course; // Dữ liệu trả về từ API nằm trong object 'course'
 
-        <div className="max-w-[1440px] w-full mx-auto px-6 lg:px-10 py-8">
-          {filteredCourses.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {filteredCourses.map((course) => (
-                <Link
-                  to={`/learn/${course.id}`}
-                  key={course.id}
-                  className="group flex flex-col bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden hover:shadow-xl hover:border-[#135bec]/50 transition-all"
+              return (
+                <div
+                  key={item.enrollment_id}
+                  className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col"
                 >
-                  <div className="relative aspect-video w-full overflow-hidden bg-slate-800">
-                    <div
-                      className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                      style={{ backgroundImage: `url('${course.image}')` }}
-                    ></div>
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
-                      <span className="material-symbols-outlined text-white text-5xl">
-                        play_circle
-                      </span>
+                  {/* Ảnh Thumbnail */}
+                  <div className="h-40 bg-gray-200 overflow-hidden relative">
+                    {course.thumbnail_url ? (
+                      <img
+                        src={`http://localhost:5000${course.thumbnail_url}`}
+                        alt={course.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        Không có ảnh
+                      </div>
+                    )}
+
+                    {/* Lớp phủ hover để hiện nút Play (tùy chọn UI đẹp) */}
+                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
+                      <svg
+                        className="w-12 h-12 text-white opacity-80"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                          clipRule="evenodd"
+                        ></path>
+                      </svg>
                     </div>
                   </div>
 
+                  {/* Thông tin khóa học */}
                   <div className="p-4 flex flex-col flex-grow">
-                    <h3 className="font-bold text-slate-900 dark:text-white leading-tight mb-2 line-clamp-2 group-hover:text-[#135bec]">
+                    <h3 className="font-bold text-gray-800 text-lg line-clamp-2 mb-1">
                       {course.title}
                     </h3>
-                    <p className="text-xs text-slate-500 mb-4">
-                      {course.instructor}
+                    <p className="text-sm text-gray-500 mb-4">
+                      Giảng viên: {course.lecturer?.name || "Ẩn danh"}
                     </p>
 
-                    <div className="mt-auto pt-2">
-                      <div className="flex justify-between items-end mb-1.5">
-                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                          {course.progress === 0
-                            ? "Start Course"
-                            : course.progress === 100
-                              ? "Completed"
-                              : `${course.progress}% Complete`}
-                        </span>
-                        {course.progress === 100 && (
-                          <span className="material-symbols-outlined text-green-500 text-sm">
-                            verified
-                          </span>
-                        )}
-                      </div>
-                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
-                        <div
-                          className={`h-full rounded-full transition-all duration-700 ${course.progress === 100 ? "bg-green-500" : "bg-[#135bec]"}`}
-                          style={{ width: `${course.progress}%` }}
-                        ></div>
-                      </div>
+                    {/* Nút Vào học đẩy xuống đáy */}
+                    <div className="mt-auto pt-2 border-t border-gray-100">
+                      {/* Tạm thời link đến trang chi tiết, sau này sẽ link đến trang Video Học (/learn/:id) */}
+                      <Link
+                        to={`/learn/${course.id}`}
+                        className="block w-full text-center py-2 bg-blue-50 text-blue-600 font-bold rounded hover:bg-blue-100 transition"
+                      >
+                        Vào học ngay
+                      </Link>
                     </div>
                   </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="py-20 text-center flex flex-col items-center animate-fade-in">
-              <span className="material-symbols-outlined text-6xl text-slate-400 mb-4">
-                menu_book
-              </span>
-              <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300">
-                No courses here yet
-              </h3>
-              <p className="text-slate-500 mt-2">
-                When you enroll in a course, it will appear here.
-              </p>
-              <Link
-                to="/"
-                className="mt-6 px-6 py-3 bg-[#135bec] text-white font-bold rounded-xl hover:bg-blue-600 transition-all shadow-lg shadow-[#135bec]/20"
-              >
-                Browse Courses Now
-              </Link>
-            </div>
-          )}
-        </div>
-      </main>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
