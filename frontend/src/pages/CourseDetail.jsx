@@ -228,9 +228,12 @@ const CourseDetail = () => {
                     <button className="w-full bg-[#135bec] hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-[#135bec]/25">
                       Add to cart
                     </button>
-                    <button className="w-full bg-white dark:bg-transparent border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800 font-bold py-3 px-4 rounded-lg transition-colors">
+                    <Link
+                      to="/checkout"
+                      className="w-full bg-white dark:bg-transparent border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800 font-bold py-3 px-4 rounded-lg transition-colors"
+                    >
                       Buy now
-                    </button>
+                    </Link>
                   </div>
                   <p className="text-xs text-center text-slate-500">
                     30-Day Money-Back Guarantee

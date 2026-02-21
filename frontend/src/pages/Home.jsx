@@ -104,7 +104,7 @@ const Home = () => {
                 Explore
               </Link>
               <Link
-                to="/"
+                to="/my-learning"
                 className="text-slate-300 hover:text-white text-sm font-medium transition-colors"
               >
                 My Learning
@@ -124,12 +124,15 @@ const Home = () => {
                   search
                 </span>
               </button>
-              <button className="relative text-slate-300 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors">
+              <Link
+                to="/cart"
+                className="relative text-slate-300 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors"
+              >
                 <span className="material-symbols-outlined text-[20px]">
                   shopping_cart
                 </span>
                 <span className="absolute top-1.5 right-1.5 size-2 bg-[#135bec] rounded-full"></span>
-              </button>
+              </Link>
               <button className="text-slate-300 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors">
                 <span className="material-symbols-outlined text-[20px]">
                   notifications
@@ -157,7 +160,7 @@ const Home = () => {
                   </div>
                   <div className="p-2">
                     <Link
-                      to="/"
+                      to="/my-learning"
                       className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md"
                     >
                       <span className="material-symbols-outlined text-[18px]">
@@ -166,7 +169,7 @@ const Home = () => {
                       My Learning
                     </Link>
                     <Link
-                      to="/"
+                      to="/wishlist"
                       className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md"
                     >
                       <span className="material-symbols-outlined text-[18px]">
@@ -337,7 +340,7 @@ const Home = () => {
           </div>
 
           {/* Courses  */}
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Vòng lặp map mảng dữ liệu ra Component CourseCard */}
             {DUMMY_COURSES.map((course) => (
