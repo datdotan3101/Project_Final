@@ -1,67 +1,49 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import axios from "axios";
 import CourseCard from "../components/CourseCard"; // Import Component dùng chung
 
 const Home = () => {
-  // Dữ liệu mẫu (Giả lập việc fetch API từ Backend)
-  const DUMMY_COURSES = [
-    {
-      id: 1,
-      title: "Complete Web Development Bootcamp 2024",
-      image:
-        "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=600&q=80",
-      category: "Development",
-      duration: "22h",
-      instructor: "Dr. Angela Yu",
-      rating: 4.8,
-      reviewsCount: "12,400",
-      price: 12.99,
-      originalPrice: 84.99,
-      isBestseller: true,
-    },
-    {
-      id: 2,
-      title: "The Ultimate Graphic Design Course",
-      image:
-        "https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=600&q=80",
-      category: "Design",
-      duration: "14h",
-      instructor: "Lindsay Marsh",
-      rating: 4.7,
-      reviewsCount: "5,200",
-      price: 14.99,
-      originalPrice: 94.99,
-      isBestseller: true,
-    },
-    {
-      id: 3,
-      title: "MBA in a Box: Business Strategy",
-      image:
-        "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80",
-      category: "Business",
-      duration: "32h",
-      instructor: "365 Careers",
-      rating: 4.6,
-      reviewsCount: "8,100",
-      price: 11.99,
-      originalPrice: 79.99,
-      isBestseller: false,
-    },
-    {
-      id: 4,
-      title: "Music Production Masterclass",
-      image:
-        "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=600&q=80",
-      category: "Music",
-      duration: "12h",
-      instructor: "Jason Allen",
-      rating: 4.8,
-      reviewsCount: "3,300",
-      price: 13.99,
-      originalPrice: 69.99,
-      isBestseller: false,
-    },
-  ];
+  // 1. State lưu danh sách khóa học lấy từ Backend
+  const [courses, setCourses] = useState([]);
+
+  // 2. Fetch API khi trang Home được render lần đầu
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        // Nhớ đổi port 5000 thành port backend của bạn
+        const response = await axios.get("http://localhost:5000/api/courses");
+
+        // Backend có thể trả về array trực tiếp hoặc bọc trong object (VD: response.data.courses)
+        const rawCourses = response.data.courses || response.data;
+
+        // 3. Chuẩn hóa dữ liệu từ DB để khớp với Props của CourseCard, tránh vỡ UI
+        const formattedCourses = rawCourses.map((course) => ({
+          id: course.id,
+          title: course.title,
+          // Nếu DB dùng trường 'thumbnail_url', ta map nó sang 'image' cho Component
+          image:
+            course.thumbnail_url ||
+            "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=600&q=80",
+          category: course.category || "General",
+          price: course.price,
+          // Các trường dưới đây có thể DB chưa có, ta tạm dùng giá trị mặc định để giữ nguyên UI
+          duration: course.duration || "12h",
+          instructor: course.instructor?.name || "EduMarket Instructor",
+          rating: course.rating || 4.8,
+          reviewsCount: course.reviewsCount || "1,200",
+          originalPrice: course.price ? (course.price * 1.5).toFixed(2) : 84.99,
+          isBestseller: course.isBestseller || false,
+        }));
+
+        setCourses(formattedCourses);
+      } catch (error) {
+        console.error("Lỗi khi fetch danh sách khóa học:", error);
+      }
+    };
+
+    fetchCourses();
+  }, []);
 
   return (
     <div className="bg-[#f6f6f8] dark:bg-[#101622] font-sans antialiased text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
@@ -181,12 +163,15 @@ const Home = () => {
                       to="/"
                       className="flex items-center justify-between px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md group/switch"
                     >
-                      <div className="flex items-center gap-2">
+                      <Link
+                        to="/instructor/dashboard"
+                        className="flex items-center gap-2"
+                      >
                         <span className="material-symbols-outlined text-[18px]">
                           cast_for_education
                         </span>{" "}
                         Instructor Mode
-                      </div>
+                      </Link>
                       <div className="w-8 h-4 bg-slate-600 rounded-full relative">
                         <div className="absolute left-0.5 top-0.5 w-3 h-3 bg-white rounded-full transition-transform group-hover/switch:translate-x-full"></div>
                       </div>
@@ -342,10 +327,16 @@ const Home = () => {
           {/* Courses  */}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Vòng lặp map mảng dữ liệu ra Component CourseCard */}
-            {DUMMY_COURSES.map((course) => (
-              <CourseCard key={course.id} {...course} />
-            ))}
+            {/* Nếu mảng courses rỗng thì hiển thị thông báo, ngược lại map dữ liệu thật ra thẻ CourseCard */}
+            {courses.length === 0 ? (
+              <p className="text-slate-400 col-span-full">
+                No courses available at the moment.
+              </p>
+            ) : (
+              courses.map((course) => (
+                <CourseCard key={course.id} {...course} />
+              ))
+            )}
           </div>
         </section>
 
