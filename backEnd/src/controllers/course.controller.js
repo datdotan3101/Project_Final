@@ -467,10 +467,14 @@ export const getLecturerCourses = async (req, res) => {
   try {
     const courses = await prisma.course.findMany({
       where: {
-        lecturer_id: req.user.id, // Lọc theo ID của giảng viên từ token
+        lecturer_id: req.user.id,
+      },
+      include: {
+        enrollments: true,
+        reviews: true,
       },
       orderBy: {
-        createdAt: "desc", // Xếp khóa học mới nhất lên đầu
+        createdAt: "desc",
       },
     });
 
