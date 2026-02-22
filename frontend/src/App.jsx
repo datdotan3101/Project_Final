@@ -6,12 +6,13 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import CourseDetail from "./pages/CourseDetail";
-import Checkout from "./pages/CheckOut";
 import MyLearning from "./pages/MyLearning";
 import Navbar from "./components/Navbar";
 import Learn from "./pages/Learn";
 import LecturerDashboard from "./pages/LecturerDashboard";
 import CourseEditor from "./pages/CourseEditor";
+import Checkout from "./pages/Checkout";
+import AdminDashboard from "./pages/AdminDashboard";
 
 function App() {
   return (
@@ -101,14 +102,7 @@ function App() {
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
-              <Route
-                path="/admin/dashboard"
-                element={
-                  <h1 className="text-center mt-10 text-2xl text-red-600 font-bold">
-                    Khu vực quản lý của ADMIN
-                  </h1>
-                }
-              />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
             </Route>
 
             {/* Route 404 cho các đường dẫn không tồn tại */}

@@ -11,19 +11,14 @@ const LecturerDashboard = () => {
     const fetchMyCourses = async () => {
       try {
         const token = localStorage.getItem("token");
-        // Gọi API lấy toàn bộ khóa học.
-        // Lưu ý: Nếu ở Backend bạn chưa viết API riêng cho Lecturer lấy khóa học của họ,
-        // bạn có thể tạm lấy tất cả rồi dùng .filter() ở Frontend, nhưng tốt nhất là có API GET /api/courses/me.
-        // Ở đây mình giả sử gọi API lấy danh sách và FE tự lọc tạm dựa vào Token
-        const response = await axios.get("http://localhost:5000/api/courses");
-
-        // Tạm thời lọc ở FE (Nếu BE chưa có API get courses by Lecturer ID)
-        const user = JSON.parse(localStorage.getItem("user"));
-        const filteredCourses = response.data.filter(
-          (c) => c.lecturer?.email === user.email,
+        const response = await axios.get(
+          "http://localhost:5000/api/courses/my-courses",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
         );
 
-        setMyCourses(filteredCourses);
+        setMyCourses(response.data);
         setLoading(false);
       } catch (err) {
         console.error(err);

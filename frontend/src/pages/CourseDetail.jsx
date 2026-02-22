@@ -101,12 +101,14 @@ const CourseDetail = () => {
                     ? "Miễn phí"
                     : `${course.price.toLocaleString("vi-VN")} đ`}
                 </div>
-                <button
-                  onClick={handleBuyNow}
-                  className="w-full py-3 bg-blue-600 text-white font-bold rounded-md hover:bg-blue-700 transition"
-                >
-                  Mua Ngay
-                </button>
+                {user?.role !== "ADMIN" && (
+                  <button
+                    onClick={handleBuyNow}
+                    className="w-full py-3 bg-blue-600 text-white font-bold rounded-md hover:bg-blue-700 transition"
+                  >
+                    Mua Ngay
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -201,12 +203,14 @@ const CourseDetail = () => {
             ? "Miễn phí"
             : `${course.price?.toLocaleString("vi-VN")} đ`}
         </div>
-        <button
-          onClick={handleBuyNow}
-          className="px-6 py-3 bg-blue-600 text-white font-bold rounded-md hover:bg-blue-700 transition"
-        >
-          Mua Ngay
-        </button>
+        {user?.role !== "ADMIN" && (
+          <button
+            onClick={handleBuyNow}
+            className="px-6 py-3 bg-blue-600 text-white font-bold rounded-md hover:bg-blue-700 transition"
+          >
+            Mua Ngay
+          </button>
+        )}
       </div>
     </div>
   );

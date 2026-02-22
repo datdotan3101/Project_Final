@@ -22,6 +22,25 @@ export const createCourse = async (req, res) => {
     res
       .status(201)
       .json({ message: "Tạo khóa học thành công!", course: newCourse });
+
+    // --- Tự động tạo thông báo cho Admin ---
+    try {
+      const admins = await prisma.user.findMany({ where: { role: "ADMIN" } });
+      const notificationPromises = admins.map((admin) =>
+        prisma.notification.create({
+          data: {
+            userId: admin.id,
+            title: "Khóa học mới chờ duyệt",
+            message: `Giảng viên ${req.user.name} đã tạo khóa học "${title}". Vui lòng kiểm tra và duyệt.`,
+            type: "COURSE_CREATED",
+            link: "/admin/dashboard",
+          },
+        }),
+      );
+      await Promise.all(notificationPromises);
+    } catch (err) {
+      console.error("Lỗi gửi thông báo cho Admin:", err);
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Lỗi khi tạo khóa học." });
@@ -111,22 +130,22 @@ export const getAllCourses = async (req, res) => {
   try {
     const courses = await prisma.course.findMany({
       where: {
-        status: 'APPROVED' // Chỉ lấy các khóa đã duyệt
+        status: "APPROVED", // Chỉ lấy các khóa đã duyệt
       },
       include: {
         lecturer: {
-          select: { name: true, email: true } // Lấy thêm tên giảng viên
-        }
+          select: { name: true, email: true }, // Lấy thêm tên giảng viên
+        },
       },
       orderBy: {
-        createdAt: 'desc' // Sắp xếp khóa học mới nhất lên đầu
-      }
+        createdAt: "desc", // Sắp xếp khóa học mới nhất lên đầu
+      },
     });
 
     res.status(200).json(courses);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Lỗi khi lấy danh sách khóa học.' });
+    res.status(500).json({ message: "Lỗi khi lấy danh sách khóa học." });
   }
 };
 
@@ -139,24 +158,24 @@ export const getCourseById = async (req, res) => {
       where: { id: parseInt(courseId) },
       include: {
         lecturer: {
-          select: { name: true, email: true }
+          select: { name: true, email: true },
         },
         sections: {
-          orderBy: { order_index: 'asc' },
+          orderBy: { order_index: "asc" },
           include: {
             lessons: {
-              orderBy: { order_index: 'asc' },
-              // Không nên trả về content_url_or_text (video) nếu chưa mua, 
+              orderBy: { order_index: "asc" },
+              // Không nên trả về content_url_or_text (video) nếu chưa mua,
               // nhưng ở bước này ta cứ trả về để test FE trước.
-            }
-          }
+            },
+          },
         },
-        reviews: true // Lấy kèm các đánh giá
-      }
+        reviews: true, // Lấy kèm các đánh giá
+      },
     });
 
     if (!course) {
-      return res.status(404).json({ message: 'Không tìm thấy khóa học!' });
+      return res.status(404).json({ message: "Không tìm thấy khóa học!" });
     }
 
     // Nếu khóa học chưa duyệt mà người xem không phải là tác giả hoặc admin thì chặn lại
@@ -165,7 +184,7 @@ export const getCourseById = async (req, res) => {
     res.status(200).json(course);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Lỗi khi lấy chi tiết khóa học.' });
+    res.status(500).json({ message: "Lỗi khi lấy chi tiết khóa học." });
   }
 };
 
@@ -175,13 +194,18 @@ export const getCourseById = async (req, res) => {
 export const updateCourse = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, price, status } = req.body;
+    const { title, description, price, status, admin_comment } = req.body;
 
-    const course = await prisma.course.findUnique({ where: { id: parseInt(id) } });
-    
-    if (!course) return res.status(404).json({ message: 'Không tìm thấy khóa học!' });
-    if (course.lecturer_id !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Bạn không có quyền sửa khóa học này!' });
+    const course = await prisma.course.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!course)
+      return res.status(404).json({ message: "Không tìm thấy khóa học!" });
+    if (course.lecturer_id !== req.user.id && req.user.role !== "ADMIN") {
+      return res
+        .status(403)
+        .json({ message: "Bạn không có quyền sửa khóa học này!" });
     }
 
     const updateData = {
@@ -191,10 +215,11 @@ export const updateCourse = async (req, res) => {
     };
 
     // Nếu Lecturer là người sửa, tự động chuyển status về PENDING để Admin duyệt lại
-    if (req.user.role === 'LECTURER') {
-      updateData.status = 'PENDING';
-    } else if (req.user.role === 'ADMIN' && status) {
+    if (req.user.role === "LECTURER") {
+      updateData.status = "PENDING";
+    } else if (req.user.role === "ADMIN" && status) {
       updateData.status = status; // Admin có quyền set thẳng status
+      if (admin_comment) updateData.admin_comment = admin_comment;
     }
 
     // Nếu có upload ảnh mới
@@ -204,13 +229,16 @@ export const updateCourse = async (req, res) => {
 
     const updatedCourse = await prisma.course.update({
       where: { id: parseInt(id) },
-      data: updateData
+      data: updateData,
     });
 
-    res.status(200).json({ message: 'Cập nhật khóa học thành công!', course: updatedCourse });
+    res.status(200).json({
+      message: "Cập nhật khóa học thành công!",
+      course: updatedCourse,
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Lỗi khi cập nhật khóa học.' });
+    res.status(500).json({ message: "Lỗi khi cập nhật khóa học." });
   }
 };
 
@@ -222,25 +250,34 @@ export const updateSection = async (req, res) => {
 
     const section = await prisma.section.findUnique({
       where: { id: parseInt(sectionId) },
-      include: { course: true }
+      include: { course: true },
     });
 
-    if (!section) return res.status(404).json({ message: 'Không tìm thấy Section!' });
-    if (section.course.lecturer_id !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Bạn không có quyền sửa section này!' });
+    if (!section)
+      return res.status(404).json({ message: "Không tìm thấy Section!" });
+    if (
+      section.course.lecturer_id !== req.user.id &&
+      req.user.role !== "ADMIN"
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Bạn không có quyền sửa section này!" });
     }
 
     const updatedSection = await prisma.section.update({
       where: { id: parseInt(sectionId) },
       data: {
         title,
-        order_index: order_index ? parseInt(order_index) : undefined
-      }
+        order_index: order_index ? parseInt(order_index) : undefined,
+      },
     });
 
-    res.status(200).json({ message: 'Cập nhật section thành công!', section: updatedSection });
+    res.status(200).json({
+      message: "Cập nhật section thành công!",
+      section: updatedSection,
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi cập nhật section.' });
+    res.status(500).json({ message: "Lỗi khi cập nhật section." });
   }
 };
 
@@ -252,34 +289,42 @@ export const updateLesson = async (req, res) => {
 
     const lesson = await prisma.lesson.findUnique({
       where: { id: parseInt(lessonId) },
-      include: { section: { include: { course: true } } }
+      include: { section: { include: { course: true } } },
     });
 
-    if (!lesson) return res.status(404).json({ message: 'Không tìm thấy bài học!' });
-    if (lesson.section.course.lecturer_id !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Bạn không có quyền sửa bài học này!' });
+    if (!lesson)
+      return res.status(404).json({ message: "Không tìm thấy bài học!" });
+    if (
+      lesson.section.course.lecturer_id !== req.user.id &&
+      req.user.role !== "ADMIN"
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Bạn không có quyền sửa bài học này!" });
     }
 
     const updateData = {
       title,
       order_index: order_index ? parseInt(order_index) : undefined,
-      content_type
+      content_type,
     };
 
-    if (content_type === 'VIDEO' && req.file) {
+    if (content_type === "VIDEO" && req.file) {
       updateData.content_url_or_text = `/uploads/${req.file.filename}`;
-    } else if (content_type === 'TEXT' && text_content) {
+    } else if (content_type === "TEXT" && text_content) {
       updateData.content_url_or_text = text_content;
     }
 
     const updatedLesson = await prisma.lesson.update({
       where: { id: parseInt(lessonId) },
-      data: updateData
+      data: updateData,
     });
 
-    res.status(200).json({ message: 'Cập nhật bài học thành công!', lesson: updatedLesson });
+    res
+      .status(200)
+      .json({ message: "Cập nhật bài học thành công!", lesson: updatedLesson });
   } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi cập nhật bài học.' });
+    res.status(500).json({ message: "Lỗi khi cập nhật bài học." });
   }
 };
 
@@ -289,17 +334,22 @@ export const updateLesson = async (req, res) => {
 export const deleteCourse = async (req, res) => {
   try {
     const { id } = req.params;
-    const course = await prisma.course.findUnique({ where: { id: parseInt(id) } });
+    const course = await prisma.course.findUnique({
+      where: { id: parseInt(id) },
+    });
 
-    if (!course) return res.status(404).json({ message: 'Không tìm thấy khóa học!' });
-    if (course.lecturer_id !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Bạn không có quyền xóa khóa học này!' });
+    if (!course)
+      return res.status(404).json({ message: "Không tìm thấy khóa học!" });
+    if (course.lecturer_id !== req.user.id && req.user.role !== "ADMIN") {
+      return res
+        .status(403)
+        .json({ message: "Bạn không có quyền xóa khóa học này!" });
     }
 
     await prisma.course.delete({ where: { id: parseInt(id) } });
-    res.status(200).json({ message: 'Đã xóa khóa học thành công!' });
+    res.status(200).json({ message: "Đã xóa khóa học thành công!" });
   } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi xóa khóa học.' });
+    res.status(500).json({ message: "Lỗi khi xóa khóa học." });
   }
 };
 
@@ -309,18 +359,24 @@ export const deleteSection = async (req, res) => {
     const { sectionId } = req.params;
     const section = await prisma.section.findUnique({
       where: { id: parseInt(sectionId) },
-      include: { course: true }
+      include: { course: true },
     });
 
-    if (!section) return res.status(404).json({ message: 'Không tìm thấy Section!' });
-    if (section.course.lecturer_id !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Bạn không có quyền xóa section này!' });
+    if (!section)
+      return res.status(404).json({ message: "Không tìm thấy Section!" });
+    if (
+      section.course.lecturer_id !== req.user.id &&
+      req.user.role !== "ADMIN"
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Bạn không có quyền xóa section này!" });
     }
 
     await prisma.section.delete({ where: { id: parseInt(sectionId) } });
-    res.status(200).json({ message: 'Đã xóa section thành công!' });
+    res.status(200).json({ message: "Đã xóa section thành công!" });
   } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi xóa section.' });
+    res.status(500).json({ message: "Lỗi khi xóa section." });
   }
 };
 
@@ -330,18 +386,52 @@ export const deleteLesson = async (req, res) => {
     const { lessonId } = req.params;
     const lesson = await prisma.lesson.findUnique({
       where: { id: parseInt(lessonId) },
-      include: { section: { include: { course: true } } }
+      include: { section: { include: { course: true } } },
     });
 
-    if (!lesson) return res.status(404).json({ message: 'Không tìm thấy bài học!' });
-    if (lesson.section.course.lecturer_id !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Bạn không có quyền xóa bài học này!' });
+    if (!lesson)
+      return res.status(404).json({ message: "Không tìm thấy bài học!" });
+    if (
+      lesson.section.course.lecturer_id !== req.user.id &&
+      req.user.role !== "ADMIN"
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Bạn không có quyền xóa bài học này!" });
     }
 
     await prisma.lesson.delete({ where: { id: parseInt(lessonId) } });
-    res.status(200).json({ message: 'Đã xóa bài học thành công!' });
+    res.status(200).json({ message: "Đã xóa bài học thành công!" });
   } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi xóa bài học.' });
+    res.status(500).json({ message: "Lỗi khi xóa bài học." });
+  }
+};
+
+// [PUT] Reorder Lessons within a Section
+export const reorderLessons = async (req, res) => {
+  try {
+    const { lessons } = req.body; // Expect array: [{id: 1, order_index: 0}, ...]
+
+    if (!Array.isArray(lessons)) {
+      return res.status(400).json({ message: "Dữ liệu không hợp lệ!" });
+    }
+
+    // Thực hiện update hàng loạt dùng transaction
+    const updatePromises = lessons.map((item) =>
+      prisma.lesson.update({
+        where: { id: parseInt(item.id) },
+        data: {
+          order_index: item.order_index,
+          section_id: item.section_id ? parseInt(item.section_id) : undefined,
+        },
+      }),
+    );
+
+    await prisma.$transaction(updatePromises);
+    res.status(200).json({ message: "Sắp xếp bài học thành công!" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Lỗi khi sắp xếp bài học." });
   }
 };
 
@@ -350,16 +440,37 @@ export const getLecturerCourses = async (req, res) => {
   try {
     const courses = await prisma.course.findMany({
       where: {
-        lecturer_id: req.user.id // Lọc theo ID của giảng viên từ token
+        lecturer_id: req.user.id, // Lọc theo ID của giảng viên từ token
       },
       orderBy: {
-        createdAt: 'desc' // Xếp khóa học mới nhất lên đầu
-      }
+        createdAt: "desc", // Xếp khóa học mới nhất lên đầu
+      },
     });
 
     res.status(200).json(courses);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Lỗi khi lấy danh sách khóa học của bạn.' });
+    res
+      .status(500)
+      .json({ message: "Lỗi khi lấy danh sách khóa học của bạn." });
+  }
+};
+
+// Lấy toàn bộ khóa học (Bao gồm cả PENDING, REJECTED) dành riêng cho Admin
+export const getAdminCourses = async (req, res) => {
+  try {
+    const courses = await prisma.course.findMany({
+      include: {
+        lecturer: {
+          select: { name: true, email: true },
+        },
+      },
+      orderBy: { createdAt: "desc" }, // Sắp xếp khóa mới nhất lên đầu
+    });
+
+    res.status(200).json(courses);
+  } catch (error) {
+    console.error("Lỗi lấy danh sách admin:", error);
+    res.status(500).json({ message: "Lỗi Server" });
   }
 };

@@ -14,9 +14,13 @@ import {
   deleteSection,
   deleteLesson,
   getLecturerCourses,
+  reorderLessons,
+  getAdminCourses,
 } from "../controllers/course.controller.js";
 
 const router = express.Router();
+
+router.get("/admin/all", authenticate, authorize("ADMIN"), getAdminCourses);
 
 // 1. LECTURER: Tạo khóa học (có upload 1 file ảnh thumbnail)
 router.post(
@@ -74,6 +78,13 @@ router.put(
   authorize("LECTURER", "ADMIN"),
   upload.single("video"),
   updateLesson,
+);
+
+router.put(
+  "/lessons/reorder",
+  authenticate,
+  authorize("LECTURER", "ADMIN"),
+  reorderLessons,
 );
 
 // --- ROUTES DELETE (XÓA) ---

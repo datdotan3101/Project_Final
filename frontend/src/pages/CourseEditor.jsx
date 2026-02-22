@@ -23,6 +23,7 @@ const CourseEditor = () => {
 
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
 
   useEffect(() => {
     if (isEditMode) {
@@ -107,6 +108,26 @@ const CourseEditor = () => {
     }
   };
 
+  const handlePublish = async () => {
+    setSaving(true);
+    try {
+      const token = localStorage.getItem("token");
+      // Gửi yêu cầu cập nhật để đảm bảo status là PENDING (hoặc do BE tự xử lý)
+      await axios.put(
+        `http://localhost:5000/api/courses/${id}`,
+        { status: "PENDING" },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      setShowPublishModal(false);
+      navigate("/lecturer/dashboard");
+    } catch (err) {
+      alert("Lỗi khi gửi yêu cầu duyệt khóa học!");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading)
     return (
       <div className="min-h-screen bg-[#0f172a] flex items-center justify-center text-white">
@@ -141,7 +162,7 @@ const CourseEditor = () => {
         {/* Trục Step */}
         <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center text-sm font-semibold text-slate-500">
           <div
-            className={`flex flex-col gap-2 w-1/3 ${step >= 1 ? "text-blue-500" : ""}`}
+            className={`flex flex-col gap-2 w-1/2 ${step >= 1 ? "text-blue-500" : ""}`}
           >
             <span className="flex items-center gap-2">
               <span
@@ -160,26 +181,14 @@ const CourseEditor = () => {
           </div>
 
           <div
-            className={`flex flex-col gap-2 w-1/3 text-center items-center ${step >= 2 ? "text-blue-500" : ""}`}
+            className={`flex flex-col gap-2 w-1/2 text-right items-end ${step >= 2 ? "text-blue-500" : ""}`}
           >
             <span>STEP 2</span>
             <span className={`text-base ${step >= 2 ? "text-white" : ""}`}>
               Content Upload
             </span>
             <div
-              className={`h-1 w-[90%] rounded mt-1 ${step >= 2 ? "bg-blue-600" : "bg-slate-700"}`}
-            ></div>
-          </div>
-
-          <div
-            className={`flex flex-col gap-2 w-1/3 text-right items-end ${step >= 3 ? "text-blue-500" : ""}`}
-          >
-            <span>STEP 3</span>
-            <span className={`text-base ${step >= 3 ? "text-white" : ""}`}>
-              Publishing
-            </span>
-            <div
-              className={`h-1 w-full rounded mt-1 ${step >= 3 ? "bg-blue-600" : "bg-slate-700"}`}
+              className={`h-1 w-full rounded mt-1 ${step >= 2 ? "bg-blue-600" : "bg-slate-700"}`}
             ></div>
           </div>
         </div>
@@ -393,21 +402,13 @@ const CourseEditor = () => {
                     : "text-slate-500"
                 }
               >
-                Record content
-              </li>
-              <li
-                className={
-                  step === 3 ? "text-white font-bold" : "text-slate-500"
-                }
-              >
-                Upload materials
+                Upload Content
               </li>
             </ul>
           </div>
         </div>
       </div>
 
-      {/* --- STICKY BOTTOM FOOTER --- */}
       <div className="fixed bottom-0 left-0 w-full bg-[#1e293b] border-t border-slate-800 p-4 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <button
@@ -420,14 +421,52 @@ const CourseEditor = () => {
           </button>
 
           <button
-            onClick={step === 1 ? handleSaveAndContinue : () => setStep(3)}
+            onClick={
+              step === 1
+                ? handleSaveAndContinue
+                : () => setShowPublishModal(true)
+            }
             disabled={saving}
             className="bg-blue-600 text-white px-6 py-2.5 rounded font-bold hover:bg-blue-700 transition flex items-center gap-2 shadow-lg shadow-blue-600/20"
           >
-            {saving ? "Saving..." : "Save & Continue"} →
+            {saving ? "Saving..." : step === 1 ? "Save & Continue" : "Publish"}{" "}
+            →
           </button>
         </div>
       </div>
+
+      {/* PUBLISH CONFIRMATION MODAL */}
+      {showPublishModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-[#1e293b] border border-slate-700 rounded-xl p-8 max-w-sm w-full shadow-2xl scale-in-center">
+            <div className="w-16 h-16 bg-blue-600/20 text-blue-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-6">
+              🚀
+            </div>
+            <h2 className="text-2xl font-bold text-white text-center mb-3">
+              Sẵn sàng xuất bản?
+            </h2>
+            <p className="text-slate-400 text-center mb-8">
+              Khóa học của bạn sẽ được gửi đến Admin để phê duyệt. Bạn vẫn có
+              thể chỉnh sửa sau khi xuất bản.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handlePublish}
+                disabled={saving}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition"
+              >
+                {saving ? "Đang xử lý..." : "Xác nhận & Gửi duyệt"}
+              </button>
+              <button
+                onClick={() => setShowPublishModal(false)}
+                className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-lg transition"
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

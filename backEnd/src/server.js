@@ -8,6 +8,7 @@ import enrollmentRoutes from "./routes/enrollment.routes.js";
 import progressRoutes from "./routes/progress.routes.js";
 import reviewRoutes from "./routes/review.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
 import path from "path";
 
 dotenv.config();
@@ -47,6 +48,9 @@ app.use("/api/reviews", reviewRoutes);
 
 // Chatbot
 app.use("/api/chat", chatRoutes);
+
+// Notification
+app.use("/api/notifications", notificationRoutes);
 
 const PORT = process.env.PORT || 5000;
 

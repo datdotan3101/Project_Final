@@ -53,6 +53,7 @@ model Course {
   price         Float        @default(0)
   thumbnail_url String?
   status        CourseStatus @default(PENDING)
+  admin_comment String?
   
   // Relations
   lecturer_id   Int
@@ -139,4 +140,15 @@ model LessonProgress {
   completedAt  DateTime @default(now())
 
   @@unique([student_id, lesson_id]) // Tránh duplicate trạng thái hoàn thành của 1 bài học
+}
+
+model Notification {
+  id          Int      @id @default(autoincrement())
+  userId      Int      // Người nhận thông báo
+  title       String
+  message     String
+  type        String   // 'COURSE_CREATED', 'COURSE_MODERATED', etc.
+  isRead      Boolean  @default(false)
+  link        String?  // Link để navigate tới trang liên quan
+  createdAt   DateTime @default(now())
 }
