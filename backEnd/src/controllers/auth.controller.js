@@ -20,9 +20,14 @@ export const register = async (req, res) => {
         name,
         email,
         password_hash: hashedPassword,
-        role: role || "STUDENT",
+        role: role === "LECTURER" ? "STUDENT" : role || "STUDENT",
+        status: role === "LECTURER" ? "PENDING_LECTURER" : "ACTIVE",
       },
     });
+
+    console.log(
+      `New user registered: ${email}, Role: ${newUser.role}, Status: ${newUser.status}`,
+    );
 
     res.status(201).json({
       message: "Đăng ký thành công!",
@@ -33,6 +38,27 @@ export const register = async (req, res) => {
         role: newUser.role,
       },
     });
+
+    // --- Thông báo cho Admin có người đăng ký Giảng viên ---
+    if (role === "LECTURER") {
+      try {
+        const admins = await prisma.user.findMany({ where: { role: "ADMIN" } });
+        const notificationPromises = admins.map((admin) =>
+          prisma.notification.create({
+            data: {
+              userId: admin.id,
+              title: "Yêu cầu Giảng viên mới",
+              message: `Người dùng ${name} đã đăng ký làm Giảng viên và đang chờ bạn phê duyệt.`,
+              type: "LECTURER_REQUEST",
+              link: "/admin/dashboard",
+            },
+          }),
+        );
+        await Promise.all(notificationPromises);
+      } catch (err) {
+        console.error("Lỗi gửi thông báo cho Admin (Lecturer Reg):", err);
+      }
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Lỗi server khi đăng ký." });
@@ -56,6 +82,14 @@ export const login = async (req, res) => {
       return res
         .status(400)
         .json({ message: "Email hoặc mật khẩu không đúng!" });
+    }
+
+    // Kiểm tra nếu tài khoản đang chờ duyệt giảng viên
+    if (user.status === "PENDING_LECTURER") {
+      return res.status(403).json({
+        message:
+          "Tài khoản Giảng viên của bạn đang chờ Admin phê duyệt. Vui lòng quay lại sau 24h để đăng nhập!",
+      });
     }
 
     const token = jwt.sign(

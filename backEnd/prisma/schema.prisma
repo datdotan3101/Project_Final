@@ -41,6 +41,7 @@ model User {
   enrollments   Enrollment[]
   reviews       Review[]
   progress      LessonProgress[]
+  wishlists     Wishlist[]
 
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
@@ -51,6 +52,7 @@ model Course {
   title         String
   description   String?
   price         Float        @default(0)
+  category      String       @default("Development")
   thumbnail_url String?
   status        CourseStatus @default(PENDING)
   admin_comment String?
@@ -61,6 +63,7 @@ model Course {
   sections      Section[]
   enrollments   Enrollment[]
   reviews       Review[]
+  wishlists     Wishlist[]
 
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -151,4 +154,15 @@ model Notification {
   isRead      Boolean  @default(false)
   link        String?  // Link để navigate tới trang liên quan
   createdAt   DateTime @default(now())
+}
+
+model Wishlist {
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  course_id Int
+  course    Course   @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([user_id, course_id])
 }

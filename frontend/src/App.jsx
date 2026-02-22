@@ -13,6 +13,8 @@ import LecturerDashboard from "./pages/LecturerDashboard";
 import CourseEditor from "./pages/CourseEditor";
 import Checkout from "./pages/Checkout";
 import AdminDashboard from "./pages/AdminDashboard";
+import Courses from "./pages/Courses";
+import Wishlist from "./pages/Wishlist";
 
 function App() {
   return (
@@ -55,6 +57,7 @@ function App() {
 
             {/* Thêm Route Chi Tiết Khóa Học */}
             <Route path="/course/:id" element={<CourseDetail />} />
+            <Route path="/courses" element={<Courses />} />
 
             {/* ================= STUDENT ROUTES (Chỉ cần đăng nhập là vào được) ================= */}
             <Route
@@ -68,6 +71,7 @@ function App() {
               <Route path="/my-learning" element={<MyLearning />} />
 
               <Route path="/checkout/:id" element={<Checkout />} />
+              <Route path="/wishlist" element={<Wishlist />} />
 
               <Route
                 path="/profile"

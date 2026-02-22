@@ -66,6 +66,13 @@ const Navbar = () => {
                   </Link>
                 )}
 
+                <Link
+                  to="/wishlist"
+                  className="text-gray-600 hover:text-blue-600 font-medium"
+                >
+                  Wishlist
+                </Link>
+
                 {user.role === "STUDENT" && (
                   <Link
                     to="/my-learning"

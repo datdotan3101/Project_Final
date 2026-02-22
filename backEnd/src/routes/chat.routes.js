@@ -1,9 +1,9 @@
 import express from "express";
-import { chatWithAssistant } from "../controllers/chat.controller.js";
+import { handleChat } from "../controllers/chat.controller.js";
 
 const router = express.Router();
 
-// Không cần authenticate để bất kỳ ai (kể cả khách chưa đăng nhập) cũng có thể chat nhờ tư vấn
-router.post("/", chatWithAssistant);
+// Route CHUẨN: Không có 'authenticate' để ai cũng chat được
+router.post("/", handleChat);
 
 export default router;

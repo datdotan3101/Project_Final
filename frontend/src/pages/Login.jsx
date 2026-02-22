@@ -29,8 +29,6 @@ const Login = () => {
       // 3. Sử dụng hàm login từ Context thay vì ghi trực tiếp vào localStorage
       login(user, token);
 
-      alert("Đăng nhập thành công!");
-
       if (user.role === "ADMIN") {
         navigate("/admin/dashboard");
       } else if (user.role === "LECTURER") {

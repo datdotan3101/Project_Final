@@ -56,6 +56,7 @@ export const getAllRequests = async (req, res) => {
       where: { status: "PENDING_LECTURER" },
       select: { id: true, name: true, email: true, createdAt: true },
     });
+    console.log(`Found ${requests.length} pending lecturer requests.`);
     res.json(requests);
   } catch (error) {
     res.status(500).json({ message: "Lỗi khi lấy danh sách yêu cầu" });

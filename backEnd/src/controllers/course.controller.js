@@ -3,7 +3,7 @@ import prisma from "../config/db.js";
 // [POST] Tạo khóa học mới (Lecturer)
 export const createCourse = async (req, res) => {
   try {
-    const { title, description, price } = req.body;
+    const { title, description, price, category } = req.body;
 
     // Lấy đường dẫn file ảnh vừa upload (nếu có)
     const thumbnail_url = req.file ? `/uploads/${req.file.filename}` : null;
@@ -12,6 +12,7 @@ export const createCourse = async (req, res) => {
       data: {
         title,
         description,
+        category: category || "Development",
         price: parseFloat(price || 0),
         thumbnail_url,
         lecturer_id: req.user.id, // Lấy ID của Lecturer từ Token
@@ -128,9 +129,12 @@ export const createLesson = async (req, res) => {
 // [GET] Xem danh sách tất cả khóa học (Đã được duyệt)
 export const getAllCourses = async (req, res) => {
   try {
+    const { category } = req.query; // Nhận category từ query params (?category=...)
+
     const courses = await prisma.course.findMany({
       where: {
         status: "APPROVED", // Chỉ lấy các khóa đã duyệt
+        ...(category ? { category: category } : {}), // Lọc theo danh mục nếu có
       },
       include: {
         lecturer: {
@@ -194,7 +198,8 @@ export const getCourseById = async (req, res) => {
 export const updateCourse = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, price, status, admin_comment } = req.body;
+    const { title, description, price, category, status, admin_comment } =
+      req.body;
 
     const course = await prisma.course.findUnique({
       where: { id: parseInt(id) },
@@ -211,6 +216,7 @@ export const updateCourse = async (req, res) => {
     const updateData = {
       title,
       description,
+      category,
       price: price ? parseFloat(price) : undefined,
     };
 
@@ -236,6 +242,27 @@ export const updateCourse = async (req, res) => {
       message: "Cập nhật khóa học thành công!",
       course: updatedCourse,
     });
+
+    // --- Thông báo cho Admin nếu Lecturer cập nhật (Status về PENDING) ---
+    if (req.user.role === "LECTURER") {
+      try {
+        const admins = await prisma.user.findMany({ where: { role: "ADMIN" } });
+        const notificationPromises = admins.map((admin) =>
+          prisma.notification.create({
+            data: {
+              userId: admin.id,
+              title: "Khóa học đã được cập nhật",
+              message: `Giảng viên ${req.user.name} đã cập nhật khóa học "${updatedCourse.title}". Vui lòng kiểm tra và duyệt lại.`,
+              type: "COURSE_UPDATED",
+              link: "/admin/dashboard",
+            },
+          }),
+        );
+        await Promise.all(notificationPromises);
+      } catch (err) {
+        console.error("Lỗi gửi thông báo cho Admin (Course Update):", err);
+      }
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Lỗi khi cập nhật khóa học." });

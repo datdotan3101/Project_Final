@@ -12,7 +12,7 @@ const CourseEditor = () => {
 
   const [formData, setFormData] = useState({
     title: "",
-    category: "programming",
+    category: "Development",
     difficulty: "all",
     description: "",
     price: 0,
@@ -34,6 +34,7 @@ const CourseEditor = () => {
           );
           setFormData({
             title: res.data.title,
+            category: res.data.category || "Development",
             description: res.data.description,
             price: res.data.price,
           });
@@ -73,6 +74,7 @@ const CourseEditor = () => {
       const token = localStorage.getItem("token");
       const data = new FormData();
       data.append("title", formData.title);
+      data.append("category", formData.category);
       data.append("description", formData.description);
       data.append("price", formData.price);
       if (thumbnailFile) data.append("thumbnail", thumbnailFile);
@@ -225,7 +227,7 @@ const CourseEditor = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-slate-300 mb-2">
                       Giá tiền (VNĐ)
@@ -237,6 +239,28 @@ const CourseEditor = () => {
                       onChange={handleChange}
                       className="w-full bg-[#0f172a] border border-slate-600 rounded p-3 text-white focus:outline-none focus:border-blue-500"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-300 mb-2">
+                      Category
+                    </label>
+                    <select
+                      name="category"
+                      value={formData.category}
+                      onChange={handleChange}
+                      className="w-full bg-[#0f172a] border border-slate-600 rounded p-3 text-white focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="Development">Development</option>
+                      <option value="Business">Business</option>
+                      <option value="Design">Design</option>
+                      <option value="Marketing">Marketing</option>
+                      <option value="IT & Software">IT & Software</option>
+                      <option value="Photography">Photography</option>
+                      <option value="Music">Music</option>
+                      <option value="Personal Development">
+                        Personal Development
+                      </option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-slate-300 mb-2">

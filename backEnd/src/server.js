@@ -9,6 +9,7 @@ import progressRoutes from "./routes/progress.routes.js";
 import reviewRoutes from "./routes/review.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
+import wishlistRoutes from "./routes/wishlist.routes.js";
 import path from "path";
 
 dotenv.config();
@@ -51,6 +52,9 @@ app.use("/api/chat", chatRoutes);
 
 // Notification
 app.use("/api/notifications", notificationRoutes);
+
+// Wishlist
+app.use("/api/wishlist", wishlistRoutes);
 
 const PORT = process.env.PORT || 5000;
 
