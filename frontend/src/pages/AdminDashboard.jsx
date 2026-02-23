@@ -259,62 +259,8 @@ const AdminDashboard = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* --- THÔNG BÁO --- */}
-            <div className="relative">
-              <button
-                onClick={() => setShowNotiDropdown(!showNotiDropdown)}
-                className="relative p-2 bg-white/10 rounded-full hover:bg-white/20 transition"
-              >
-                🔔
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-yellow-400 text-red-900 text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-red-800">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {showNotiDropdown && (
-                <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden text-gray-900 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                    <h3 className="font-bold text-sm">Thông báo mới</h3>
-                    <span className="text-xs text-blue-600 font-medium">
-                      Cập nhật 30s/lần
-                    </span>
-                  </div>
-                  <div className="max-h-96 overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <div className="p-8 text-center text-gray-400 text-sm italic">
-                        Không có thông báo nào
-                      </div>
-                    ) : (
-                      notifications.map((noti) => (
-                        <div
-                          key={noti.id}
-                          onClick={() => markNotificationAsRead(noti.id)}
-                          className={`p-4 border-b border-gray-50 hover:bg-gray-50 transition cursor-pointer flex gap-3 ${!noti.isRead ? "bg-blue-50/30" : ""}`}
-                        >
-                          <div
-                            className={`w-2 h-2 rounded-full mt-2 shrink-0 ${!noti.isRead ? "bg-blue-500" : "bg-transparent"}`}
-                          ></div>
-                          <div>
-                            <p
-                              className={`text-sm ${!noti.isRead ? "font-bold" : "text-gray-600"}`}
-                            >
-                              {noti.title}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                              {noti.message}
-                            </p>
-                            <p className="text-[10px] text-gray-400 mt-2">
-                              {new Date(noti.createdAt).toLocaleString("vi-VN")}
-                            </p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
+            <div className="flex items-center gap-4">
+              {/* Notification system moved to global Navbar */}
             </div>
           </div>
         </div>

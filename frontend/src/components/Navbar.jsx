@@ -1,14 +1,61 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import axios from "axios";
+
+const formatDistanceToNowVi = (date) => {
+  const diffInSeconds = Math.floor((new Date() - new Date(date)) / 1000);
+  if (diffInSeconds < 60) return "vừa xong";
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} giờ trước`;
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) return `${diffInDays} ngày trước`;
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) return `${diffInMonths} tháng trước`;
+  return `${Math.floor(diffInMonths / 12)} năm trước`;
+};
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isNotiOpen, setIsNotiOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const notiRef = useRef(null);
+
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+      // Polling for new notifications every 60 seconds
+      const interval = setInterval(fetchNotifications, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        "http://localhost:5000/api/notifications",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      setNotifications(response.data);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const isInstructorMode = location.pathname.startsWith("/lecturer");
+  const isAdminMode = location.pathname.startsWith("/admin");
+  const isAdmin = user?.role === "ADMIN";
+  const isLecturer = user?.role === "LECTURER";
 
   const handleLogout = () => {
     logout();
@@ -101,8 +148,49 @@ const Navbar = () => {
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-600 rounded-full border border-[#0b1120]"></span>
             </Link>
 
+            {/* Message Icon */}
+            <button
+              onClick={() =>
+                navigate(
+                  isAdminMode
+                    ? "/admin/notifications"
+                    : isInstructorMode
+                      ? "/lecturer/notifications"
+                      : "/notifications",
+                )
+              }
+              className="hover:text-white transition p-1 relative"
+              title="Tin nhắn"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                />
+              </svg>
+            </button>
+
             {/* Notification Icon */}
-            <button className="hover:text-white transition p-1">
+            <button
+              onClick={() =>
+                navigate(
+                  isAdminMode
+                    ? "/admin/notifications"
+                    : isInstructorMode
+                      ? "/lecturer/notifications"
+                      : "/notifications",
+                )
+              }
+              className="hover:text-white transition p-1 relative"
+              title="Thông báo"
+            >
               <svg
                 className="w-5 h-5"
                 fill="none"
@@ -116,6 +204,11 @@ const Navbar = () => {
                   d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
                 />
               </svg>
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-[10px] font-black flex items-center justify-center rounded-full border border-[#0b1120]">
+                  {unreadCount}
+                </span>
+              )}
             </button>
 
             {/* Auth Buttons or Profile Avatar */}

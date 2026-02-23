@@ -26,15 +26,24 @@ export const createCourse = async (req, res) => {
 
     // --- Tự động tạo thông báo cho Admin ---
     try {
+      // Đảm bảo lấy được tên giảng viên (Phòng trường hợp Token cũ chưa có name)
+      let lecturerName = req.user.name;
+      if (!lecturerName) {
+        const lecturer = await prisma.user.findUnique({
+          where: { id: req.user.id },
+        });
+        lecturerName = lecturer?.name || "Giảng viên";
+      }
+
       const admins = await prisma.user.findMany({ where: { role: "ADMIN" } });
       const notificationPromises = admins.map((admin) =>
         prisma.notification.create({
           data: {
             userId: admin.id,
             title: "Khóa học mới chờ duyệt",
-            message: `Giảng viên ${req.user.name} đã tạo khóa học "${title}". Vui lòng kiểm tra và duyệt.`,
+            message: `Giảng viên ${lecturerName} đã tạo khóa học "${title}". Vui lòng kiểm tra và duyệt.`,
             type: "COURSE_CREATED",
-            link: "/admin/dashboard",
+            link: `/course/${newCourse.id}`,
           },
         }),
       );
@@ -246,21 +255,60 @@ export const updateCourse = async (req, res) => {
     // --- Thông báo cho Admin nếu Lecturer cập nhật (Status về PENDING) ---
     if (req.user.role === "LECTURER") {
       try {
+        // Đảm bảo lấy được tên giảng viên (Phòng trường hợp Token cũ chưa có name)
+        let lecturerName = req.user.name;
+        if (!lecturerName) {
+          const lecturer = await prisma.user.findUnique({
+            where: { id: req.user.id },
+          });
+          lecturerName = lecturer?.name || "Giảng viên";
+        }
+
         const admins = await prisma.user.findMany({ where: { role: "ADMIN" } });
         const notificationPromises = admins.map((admin) =>
           prisma.notification.create({
             data: {
               userId: admin.id,
               title: "Khóa học đã được cập nhật",
-              message: `Giảng viên ${req.user.name} đã cập nhật khóa học "${updatedCourse.title}". Vui lòng kiểm tra và duyệt lại.`,
+              message: `Giảng viên ${lecturerName} đã cập nhật khóa học "${updatedCourse.title}". Vui lòng kiểm tra và duyệt lại.`,
               type: "COURSE_UPDATED",
-              link: "/admin/dashboard",
+              link: `/course/${id}`,
             },
           }),
         );
         await Promise.all(notificationPromises);
       } catch (err) {
         console.error("Lỗi gửi thông báo cho Admin (Course Update):", err);
+      }
+    }
+
+    // --- Thông báo cho Giảng viên nếu Admin duyệt hoặc từ chối khóa học ---
+    if (
+      req.user.role === "ADMIN" &&
+      status &&
+      (status === "APPROVED" || status === "REJECTED")
+    ) {
+      try {
+        await prisma.notification.create({
+          data: {
+            userId: updatedCourse.lecturer_id,
+            title:
+              status === "APPROVED"
+                ? "Khóa học đã được duyệt"
+                : "Khóa học bị từ chối",
+            message:
+              status === "APPROVED"
+                ? `Chúc mừng! Khóa học "${updatedCourse.title}" của bạn đã được duyệt. Nhận xét: ${admin_comment || "Nội dung rất tốt!"}`
+                : `Khóa học "${updatedCourse.title}" của bạn đã bị từ chối. Lý do: ${admin_comment || "Không có lý do cụ thể."}`,
+            type: "COURSE_MODERATED",
+            link: `/lecturer/course/edit/${id}`,
+          },
+        });
+      } catch (err) {
+        console.error(
+          "Lỗi gửi thông báo cho Lecturer (Course Moderated):",
+          err,
+        );
       }
     }
   } catch (error) {
@@ -472,6 +520,11 @@ export const getLecturerCourses = async (req, res) => {
       include: {
         enrollments: true,
         reviews: true,
+        sections: {
+          include: {
+            lessons: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",

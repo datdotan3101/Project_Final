@@ -11,6 +11,10 @@ const CourseDetail = () => {
   const [error, setError] = useState("");
   const [isExpanded, setIsExpanded] = useState({});
   const [activeTab, setActiveTab] = useState("personal");
+  const [moderationComment, setModerationComment] = useState("");
+  const [showModModal, setShowModModal] = useState(false);
+  const [modStatus, setModStatus] = useState(null); // APPROVED or REJECTED
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -51,6 +55,41 @@ const CourseDetail = () => {
     navigate(`/checkout/${course.id}`);
   };
 
+  const handleModeration = async () => {
+    if (!moderationComment.trim()) {
+      alert("Vui lòng nhập nhận xét/lý do!");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `http://localhost:5000/api/courses/${id}`,
+        { status: modStatus, admin_comment: moderationComment },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      alert(
+        modStatus === "APPROVED"
+          ? "Đã duyệt khóa học!"
+          : "Đã từ chối khóa học!",
+      );
+      setShowModModal(false);
+      setModerationComment("");
+      // Reload course data
+      const response = await axios.get(
+        `http://localhost:5000/api/courses/${id}`,
+      );
+      setCourse(response.data);
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi khi xử lý kiểm duyệt!");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0b1120] flex items-center justify-center">
@@ -72,6 +111,93 @@ const CourseDetail = () => {
 
   return (
     <div className="bg-[#0b1120] min-h-screen text-slate-300 font-sans pb-20">
+      {/* ================= ADMIN MODERATION BANNER ================= */}
+      {user?.role === "ADMIN" &&
+        (course.status === "PENDING" || course.status === "REJECTED") && (
+          <div className="bg-orange-600/10 border-b border-orange-500/30 p-4 sticky top-0 z-[60] backdrop-blur-md">
+            <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-orange-400">
+                  gavel
+                </span>
+                <div>
+                  <span className="text-orange-400 font-bold block text-sm">
+                    Chế độ Kiểm duyệt (Admin)
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    Trạng thái hiện tại:{" "}
+                    <b className="text-white uppercase">{course.status}</b>
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    setModStatus("APPROVED");
+                    setShowModModal(true);
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-xs font-black transition shadow-lg shadow-green-600/20"
+                >
+                  Phê duyệt
+                </button>
+                <button
+                  onClick={() => {
+                    setModStatus("REJECTED");
+                    setShowModModal(true);
+                  }}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-lg text-xs font-black transition shadow-lg shadow-red-600/20"
+                >
+                  Từ chối
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+      {/* Moderation Modal */}
+      {showModModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+          <div className="bg-[#1e293b] border border-slate-700 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div
+              className={`p-6 ${modStatus === "APPROVED" ? "bg-green-600/10" : "bg-red-600/10"}`}
+            >
+              <h3
+                className={`text-xl font-bold flex items-center gap-2 ${modStatus === "APPROVED" ? "text-green-400" : "text-red-400"}`}
+              >
+                {modStatus === "APPROVED"
+                  ? "✓ Phê duyệt khóa học"
+                  : "✕ Từ chối khóa học"}
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Vui lòng nhập nhận xét/lý do cho giảng viên.
+              </p>
+            </div>
+            <div className="p-6">
+              <textarea
+                value={moderationComment}
+                onChange={(e) => setModerationComment(e.target.value)}
+                placeholder="Nhận xét của bạn..."
+                className="w-full h-32 p-4 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+              />
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowModModal(false)}
+                  className="px-4 py-2 text-sm font-bold text-slate-400 hover:text-white transition"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleModeration}
+                  disabled={isProcessing}
+                  className={`px-6 py-2 rounded-xl text-sm font-bold text-white transition disabled:opacity-50 ${modStatus === "APPROVED" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}`}
+                >
+                  {isProcessing ? "Đang xử lý..." : "Xác nhận"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* ================= DARK HEADER ================= */}
       <div className="bg-[#1c1d1f] py-12 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-12">

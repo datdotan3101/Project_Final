@@ -17,6 +17,8 @@ import Courses from "./pages/Courses";
 import Wishlist from "./pages/Wishlist";
 import BecomeLecturer from "./pages/BecomeLecturer";
 import Footer from "./components/Footer";
+import Notifications from "./pages/Notifications";
+import DashboardNotifications from "./pages/DashboardNotifications";
 
 function App() {
   return (
@@ -75,6 +77,7 @@ function App() {
               <Route path="/checkout/:id" element={<Checkout />} />
               <Route path="/wishlist" element={<Wishlist />} />
               <Route path="/become-lecturer" element={<BecomeLecturer />} />
+              <Route path="/notifications" element={<Notifications />} />
 
               <Route
                 path="/profile"
@@ -91,6 +94,10 @@ function App() {
               <Route
                 path="/lecturer/dashboard"
                 element={<LecturerDashboard />}
+              />
+              <Route
+                path="/lecturer/notifications"
+                element={<DashboardNotifications />}
               />
 
               <Route path="/lecturer/course/new" element={<CourseEditor />} />
@@ -110,6 +117,10 @@ function App() {
 
             <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route
+                path="/admin/notifications"
+                element={<DashboardNotifications />}
+              />
             </Route>
 
             {/* Route 404 cho các đường dẫn không tồn tại */}
