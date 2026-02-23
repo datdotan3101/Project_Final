@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import WishlistButton from "../components/WishlistButton";
+import CourseCarousel from "../components/CourseCarousel";
 
 const Home = () => {
   const [courses, setCourses] = useState([]);
@@ -381,130 +382,47 @@ const Home = () => {
         </div>
       </div>
 
-      {/* ================= COURSE LIST (TRENDING NOW) ================= */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
-        <div className="flex justify-between items-end mb-8">
-          <h2 className="text-3xl font-bold text-white tracking-wide">
-            Trending Now
-          </h2>
-          <Link
-            to="/courses"
-            className="text-blue-500 hover:text-blue-400 font-medium flex items-center gap-1"
-          >
-            View all{" "}
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M9 5l7 7-7 7"
-              ></path>
-            </svg>
-          </Link>
-        </div>
-
+      {/* ================= COURSE LIST (CAROUSELS) ================= */}
+      <div className="mt-8">
         {loading ? (
           <div className="text-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
           </div>
         ) : error ? (
-          <div className="bg-red-900/50 border border-red-500/50 text-red-200 p-4 rounded-lg text-center">
-            {error}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-red-900/50 border border-red-500/50 text-red-200 p-4 rounded-lg text-center">
+              {error}
+            </div>
           </div>
         ) : courses.length === 0 ? (
-          <div className="text-center py-20 bg-[#1e293b] rounded-xl border border-slate-800">
-            <p className="text-slate-500 text-lg">
-              Hiện tại chưa có khóa học nào được xuất bản.
-            </p>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center py-20 bg-[#1e293b] rounded-xl border border-slate-800">
+              <p className="text-slate-500 text-lg">
+                Hiện tại chưa có khóa học nào được xuất bản.
+              </p>
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {courses.map((course) => (
-              <Link
-                key={course.id}
-                to={`/course/${course.id}`}
-                className="group bg-[#1e293b] rounded-xl overflow-hidden hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-900/20 transition duration-300 flex flex-col border border-slate-700/50"
-              >
-                <div className="h-44 bg-slate-800 relative overflow-hidden">
-                  <div className="absolute top-3 left-3 bg-yellow-400 text-black text-[10px] font-extrabold px-2 py-1 rounded uppercase tracking-wider z-10 shadow-lg">
-                    Bestseller
-                  </div>
-                  <WishlistButton courseId={course.id} />
-                  {course.thumbnail_url ? (
-                    <img
-                      src={`http://localhost:5000${course.thumbnail_url}`}
-                      alt={course.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-600">
-                      No Image
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition duration-300"></div>
-                </div>
-
-                <div className="p-5 flex flex-col flex-grow">
-                  <div className="flex justify-between items-center mb-3 text-xs font-medium text-slate-400">
-                    <span className="bg-blue-900/30 text-blue-400 px-2.5 py-1 rounded">
-                      {course.category}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <svg
-                        className="w-3.5 h-3.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        ></path>
-                      </svg>{" "}
-                      22h
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-white text-lg line-clamp-2 mb-1 group-hover:text-blue-400 transition">
-                    {course.title}
-                  </h3>
-                  <p className="text-sm text-slate-400 mb-3">
-                    {course.lecturer?.name || "Ẩn danh"}
-                  </p>
-
-                  <div className="flex items-center gap-1.5 mb-4 text-sm">
-                    <span className="text-yellow-400 font-bold">4.8</span>
-                    <div className="flex text-yellow-400 text-xs">★★★★★</div>
-                    <span className="text-slate-500 text-xs">(12,400)</span>
-                  </div>
-
-                  <div className="mt-auto pt-4 border-t border-slate-700/50 flex items-center gap-3">
-                    <span className="font-extrabold text-xl text-white">
-                      {course.price === 0
-                        ? "Free"
-                        : `${course.price.toLocaleString("vi-VN")} VNĐ`}
-                    </span>
-                    {course.price > 0 && (
-                      <span className="text-sm text-slate-500 line-through">
-                        {(course.price * 1.5).toLocaleString("vi-VN")} VNĐ
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ))}
+          <div className="flex flex-col gap-2">
+            {/* Hiển thị 10 khóa học đầu tiên từ database */}
+            <CourseCarousel
+              title="Trending Now"
+              courses={courses.slice(0, 10)}
+            />
+            <CourseCarousel
+              title="Development Courses"
+              courses={courses.filter((c) => c.category === "Development")}
+            />
+            <CourseCarousel
+              title="Business Courses"
+              courses={courses.filter((c) => c.category === "Business")}
+            />
           </div>
         )}
       </div>
 
       {/* ================= TOP CATEGORIES ================= */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-24 mb-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 mb-16">
         <h2 className="text-3xl font-bold text-white tracking-wide mb-8">
           Top Categories
         </h2>

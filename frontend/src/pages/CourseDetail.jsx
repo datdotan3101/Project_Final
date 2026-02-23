@@ -242,7 +242,14 @@ const CourseDetail = () => {
               Course content
             </h2>
             <div className="flex justify-between items-center mb-4 text-sm text-slate-400">
-              <div>36 sections • 617 lectures • 52h 32m total length</div>
+              <div>
+                {course.sections?.length || 0} sections •{" "}
+                {course.sections?.reduce(
+                  (acc, s) => acc + (s.lessons?.length || 0),
+                  0,
+                ) || 0}{" "}
+                lectures • 52h 32m total length
+              </div>
               <button className="text-blue-500 font-bold">
                 Expand all sections
               </button>
@@ -266,7 +273,7 @@ const CourseDetail = () => {
                       {section.title}
                     </div>
                     <div className="text-xs text-slate-400">
-                      {section.lessons?.length} lectures • 1hr
+                      {section.lessons?.length || 0} lectures
                     </div>
                   </button>
                   {isExpanded[section.id] && (
@@ -291,9 +298,6 @@ const CourseDetail = () => {
                   )}
                 </div>
               ))}
-              <button className="w-full py-3 bg-[#1c1d1f] text-indigo-400 font-bold border-t border-slate-700 hover:bg-slate-800">
-                26 more sections
-              </button>
             </div>
           </div>
 

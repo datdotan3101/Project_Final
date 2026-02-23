@@ -15,13 +15,15 @@ import Checkout from "./pages/Checkout";
 import AdminDashboard from "./pages/AdminDashboard";
 import Courses from "./pages/Courses";
 import Wishlist from "./pages/Wishlist";
+import BecomeLecturer from "./pages/BecomeLecturer";
+import Footer from "./components/Footer";
 
 function App() {
   return (
     <Router>
       <AuthProvider>
         <Navbar />
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-[#0b1120]">
           <Routes>
             <Route
               element={
@@ -72,6 +74,7 @@ function App() {
 
               <Route path="/checkout/:id" element={<Checkout />} />
               <Route path="/wishlist" element={<Wishlist />} />
+              <Route path="/become-lecturer" element={<BecomeLecturer />} />
 
               <Route
                 path="/profile"
@@ -120,6 +123,7 @@ function App() {
             />
           </Routes>
         </div>
+        <Footer />
       </AuthProvider>
     </Router>
   );
