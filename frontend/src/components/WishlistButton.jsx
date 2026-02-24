@@ -55,26 +55,26 @@ const WishlistButton = ({ courseId, className = "" }) => {
     <button
       onClick={toggleWishlist}
       disabled={loading}
-      className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 z-20 ${
+      className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 z-20 bg-white shadow-xl ${
         isFavorite
-          ? "bg-red-500 text-white shadow-lg shadow-red-500/40 scale-110"
-          : "bg-black/40 backdrop-blur-md text-white hover:bg-white hover:text-red-500 border border-white/20"
+          ? "text-blue-600 scale-110"
+          : "text-slate-400 hover:text-blue-500"
       } ${className}`}
       title={isFavorite ? "Remove from wishlist" : "Add to wishlist"}
     >
       {loading ? (
-        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
       ) : (
         <svg
-          className={`w-5 h-5 transition-transform duration-300 ${isFavorite ? "fill-current" : "fill-none"}`}
+          className={`w-5 h-5 transition-all duration-300 ${isFavorite ? "fill-current scale-110" : "fill-none"}`}
           stroke="currentColor"
+          strokeWidth="2.5"
           viewBox="0 0 24 24"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth="2"
             d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
           />
         </svg>

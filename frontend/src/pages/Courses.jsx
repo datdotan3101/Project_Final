@@ -1,23 +1,31 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useSearchParams, Link } from "react-router-dom";
-import WishlistButton from "../components/WishlistButton";
+import { useCart } from "../context/CartContext";
 
 const Courses = () => {
   const [searchParams] = useSearchParams();
   const categoryFilter = searchParams.get("category");
+  const searchFilter = searchParams.get("search");
 
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { addToCart } = useCart();
   const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchCourses = async () => {
       setLoading(true);
       try {
-        const url = categoryFilter
-          ? `http://localhost:5000/api/courses?category=${categoryFilter}`
-          : "http://localhost:5000/api/courses";
+        let url = "http://localhost:5000/api/courses";
+        const params = new URLSearchParams();
+        if (categoryFilter) params.append("category", categoryFilter);
+        if (searchFilter) params.append("search", searchFilter);
+
+        if (params.toString()) {
+          url += `?${params.toString()}`;
+        }
+
         const response = await axios.get(url);
         setCourses(response.data);
         setLoading(false);
@@ -28,7 +36,7 @@ const Courses = () => {
       }
     };
     fetchCourses();
-  }, [categoryFilter]);
+  }, [categoryFilter, searchFilter]);
 
   return (
     <div className="bg-[#0b1120] min-h-screen text-slate-300 pb-20 font-sans pt-24">
@@ -67,8 +75,9 @@ const Courses = () => {
               No courses found
             </h2>
             <p className="text-slate-500 mb-8 px-4">
-              We couldn't find any courses matching "{categoryFilter}". Check
-              back later or try a different category!
+              We couldn't find any courses matching "
+              {searchFilter || categoryFilter || "your criteria"}". Check back
+              later or try a different search!
             </p>
             <Link
               to="/"
@@ -90,7 +99,6 @@ const Courses = () => {
                   <div className="absolute top-4 left-4 bg-yellow-400 text-black text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest z-10 shadow-lg">
                     HOT
                   </div>
-                  <WishlistButton courseId={course.id} />
                   {course.thumbnail_url ? (
                     <img
                       src={`http://localhost:5000${course.thumbnail_url}`}
@@ -168,21 +176,17 @@ const Courses = () => {
                         </span>
                       )}
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-500 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition duration-300">
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M14 5l7 7m0 0l-7 7m7-7H3"
-                        />
-                      </svg>
-                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        addToCart(course);
+                      }}
+                      className="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-500 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition duration-300"
+                    >
+                      <span className="material-symbols-outlined text-[22px]">
+                        shopping_cart
+                      </span>
+                    </button>
                   </div>
                 </div>
               </Link>

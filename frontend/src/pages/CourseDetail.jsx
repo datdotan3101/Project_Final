@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
-import WishlistButton from "../components/WishlistButton";
 
 const CourseDetail = () => {
   const { id } = useParams();
@@ -283,7 +282,7 @@ const CourseDetail = () => {
         {/* LEFT COLUMN */}
         <div className="flex-1 order-2 md:order-1 pt-32 md:pt-80">
           {/* What you'll learn */}
-          <div className="bg-[#1c1d1f] rounded-none border border-slate-700/50 p-6 mb-8 shadow-xl">
+          <div className="bg-[#1c1d1f] rounded-none border border-slate-700/50 p-6 mt-10 mb-8 shadow-xl">
             <h2 className="text-2xl font-black text-white mb-6">
               What you'll learn
             </h2>
@@ -624,10 +623,6 @@ const CourseDetail = () => {
                     <button className="flex-1 py-3.5 border border-white text-white font-black text-sm hover:bg-slate-800 transition">
                       Add to cart
                     </button>
-                    <WishlistButton
-                      courseId={id}
-                      className="relative !top-0 !right-0 !bg-transparent !border-white !rounded-none !w-12 !h-auto flex items-center justify-center"
-                    />
                   </div>
 
                   <button

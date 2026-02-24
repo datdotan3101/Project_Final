@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { useCart } from "../context/CartContext";
 
 const CourseCard = ({
   id = 1,
@@ -17,9 +18,25 @@ const CourseCard = ({
   // State để tạo hiệu ứng toggle (bật/tắt) trái tim
   const [isFavorite, setIsFavorite] = useState(false);
 
+  const { addToCart } = useCart();
+
   const handleToggleWishlist = (e) => {
-    e.preventDefault(); // Ngăn không cho click này kích hoạt thẻ <Link> chuyển trang
+    e.preventDefault();
     setIsFavorite(!isFavorite);
+  };
+
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    addToCart({
+      id,
+      title,
+      image,
+      price,
+      instructor,
+      rating,
+      reviewsCount,
+      category,
+    });
   };
 
   return (
@@ -113,13 +130,23 @@ const CourseCard = ({
           <span className="text-xs text-slate-500">({reviewsCount})</span>
         </div>
 
-        <div className="mt-auto flex items-center gap-2 pt-3 border-t border-slate-700/50">
-          <span className="text-lg font-bold text-white">${price}</span>
-          {originalPrice && (
-            <span className="text-sm text-slate-500 line-through decoration-slate-500">
-              ${originalPrice}
+        <div className="mt-auto flex items-center justify-between pt-3 border-t border-slate-700/50">
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-bold text-white">${price}</span>
+            {originalPrice && (
+              <span className="text-sm text-slate-500 line-through decoration-slate-500">
+                ${originalPrice}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={handleAddToCart}
+            className="w-9 h-9 rounded-lg bg-blue-600/10 text-blue-500 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition duration-300"
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              shopping_cart
             </span>
-          )}
+          </button>
         </div>
       </div>
     </div>

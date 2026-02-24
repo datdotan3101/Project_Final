@@ -138,12 +138,20 @@ export const createLesson = async (req, res) => {
 // [GET] Xem danh sách tất cả khóa học (Đã được duyệt)
 export const getAllCourses = async (req, res) => {
   try {
-    const { category } = req.query; // Nhận category từ query params (?category=...)
+    const { category, search } = req.query; // Nhận category và search từ query params
 
     const courses = await prisma.course.findMany({
       where: {
         status: "APPROVED", // Chỉ lấy các khóa đã duyệt
         ...(category ? { category: category } : {}), // Lọc theo danh mục nếu có
+        ...(search
+          ? {
+              OR: [
+                { title: { contains: search, mode: "insensitive" } },
+                { description: { contains: search, mode: "insensitive" } },
+              ],
+            }
+          : {}), // Lọc theo từ khóa tìm kiếm nếu có
       },
       include: {
         lecturer: {

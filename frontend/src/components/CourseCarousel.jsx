@@ -1,9 +1,10 @@
 import React, { useRef } from "react";
 import { Link } from "react-router-dom";
-import WishlistButton from "./WishlistButton";
+import { useCart } from "../context/CartContext";
 
 const CourseCarousel = ({ title, courses }) => {
   const scrollRef = useRef(null);
+  const { addToCart } = useCart();
 
   // Thêm CSS để ẩn thanh cuộn (cho Chrome/Safari)
   const hideScrollbarStyle = {
@@ -117,7 +118,6 @@ const CourseCarousel = ({ title, courses }) => {
                   <div className="absolute top-3 left-3 bg-yellow-400 text-black text-[10px] font-extrabold px-2 py-1 rounded uppercase tracking-wider z-10 shadow-lg">
                     Bestseller
                   </div>
-                  <WishlistButton courseId={course.id} />
                   {course.thumbnail_url ? (
                     <img
                       src={`http://localhost:5000${course.thumbnail_url}`}
@@ -171,17 +171,30 @@ const CourseCarousel = ({ title, courses }) => {
                     <span className="text-slate-500 text-xs">(12,400)</span>
                   </div>
 
-                  <div className="mt-auto pt-4 border-t border-slate-700/50 flex items-center gap-3">
-                    <span className="font-extrabold text-xl text-white">
-                      {course.price === 0
-                        ? "Free"
-                        : `${course.price.toLocaleString("vi-VN")} VNĐ`}
-                    </span>
-                    {course.price > 0 && (
-                      <span className="text-sm text-slate-500 line-through">
-                        {(course.price * 1.5).toLocaleString("vi-VN")} VNĐ
+                  <div className="mt-auto pt-4 border-t border-slate-700/50 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="font-extrabold text-xl text-white">
+                        {course.price === 0
+                          ? "Free"
+                          : `${course.price.toLocaleString("vi-VN")} VNĐ`}
                       </span>
-                    )}
+                      {course.price > 0 && (
+                        <span className="text-sm text-slate-500 line-through">
+                          {(course.price * 1.5).toLocaleString("vi-VN")} VNĐ
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        addToCart(course);
+                      }}
+                      className="w-9 h-9 rounded-lg bg-blue-600/10 text-blue-500 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition duration-300"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">
+                        shopping_cart
+                      </span>
+                    </button>
                   </div>
                 </div>
               </Link>

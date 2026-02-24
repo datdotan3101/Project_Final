@@ -1,37 +1,56 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 
 const Checkout = () => {
-  const { id } = useParams(); // Nhận ID khóa học từ URL
+  const { id } = useParams();
   const { user } = useAuth();
+  const { clearCart, removeFromCart } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [course, setCourse] = useState(null);
+  // Danh sách IDs có thể từ URL param (1 course) hoặc từ state (nhiều courses)
+  const [courseIds, setCourseIds] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("vnpay"); // Mặc định chọn VNPay
+  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [couponCode, setCouponCode] = useState("");
 
-  // Lấy thông tin khóa học để hiển thị hóa đơn
   useEffect(() => {
-    const fetchCourse = async () => {
+    let ids = [];
+    if (id === "multiple" && location.state?.selectedCourseIds) {
+      ids = location.state.selectedCourseIds;
+    } else if (id && id !== "multiple") {
+      ids = [parseInt(id)];
+    }
+
+    if (ids.length === 0) {
+      navigate("/cart");
+      return;
+    }
+
+    setCourseIds(ids);
+
+    const fetchCourses = async () => {
       try {
-        const response = await axios.get(
-          `http://localhost:5000/api/courses/${id}`,
+        const coursePromises = ids.map((courseId) =>
+          axios.get(`http://localhost:5000/api/courses/${courseId}`),
         );
-        setCourse(response.data);
+        const responses = await Promise.all(coursePromises);
+        setCourses(responses.map((res) => res.data));
         setLoading(false);
       } catch (err) {
         console.error(err);
-        alert("Không tìm thấy thông tin khóa học!");
+        alert("Có lỗi xảy ra khi tải thông tin khóa học!");
         navigate("/");
       }
     };
-    fetchCourse();
-  }, [id, navigate]);
+    fetchCourses();
+  }, [id, location.state, navigate]);
 
-  // Hàm xử lý thanh toán thực sự
   const handleCheckout = async () => {
     if (!user) {
       alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
@@ -43,15 +62,15 @@ const Checkout = () => {
 
     try {
       const token = localStorage.getItem("token");
-
-      // Gửi mảng chứa ID khóa học lên API checkout mà chúng ta đã viết ở Backend
       await axios.post(
         "http://localhost:5000/api/checkout",
-        { courseIds: [parseInt(id)] },
+        { courseIds: courseIds },
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
-      // Giả lập độ trễ của cổng thanh toán (2 giây) cho cảm giác chân thực
+      // Xóa các khóa học đã mua khỏi giỏ hàng
+      courseIds.forEach((courseId) => removeFromCart(courseId));
+
       setTimeout(() => {
         setProcessing(false);
         alert(
@@ -67,215 +86,232 @@ const Checkout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-[#0b1120] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
+  const originalTotal = courses.reduce((acc, c) => acc + (c.price || 0), 0);
+  const discounts = 0;
+  const tax = 0;
+  const total = originalTotal - discounts + tax;
+
   return (
-    <div className="bg-gray-50 min-h-screen py-10">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">
-          Thanh toán an toàn
-        </h1>
+    <div className="bg-[#0b1120] min-h-screen text-slate-300 font-sans pb-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
+        <div className="flex flex-col lg:flex-row gap-12">
+          {/* LEFT COLUMN: Review & Items */}
+          <div className="flex-1 space-y-8">
+            <div>
+              <h1 className="text-4xl font-black text-white mb-2">Checkout</h1>
+              <p className="text-slate-400">
+                Review your {courses.length} items and complete payment.
+              </p>
+            </div>
 
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* CỘT TRÁI: Phương thức thanh toán */}
-          <div className="flex-1">
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">
-                Chọn phương thức thanh toán
-              </h2>
-
-              <div className="space-y-4">
-                {/* Lựa chọn 1: VNPay */}
-                <label
-                  className={`flex items-center p-4 border rounded-lg cursor-pointer transition ${paymentMethod === "vnpay" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:bg-gray-50"}`}
+            {/* Courses List */}
+            <div className="space-y-4">
+              {courses.map((course) => (
+                <div
+                  key={course.id}
+                  className="bg-[#1c2431] border border-slate-700/50 rounded-2xl p-6 flex flex-col sm:flex-row gap-6 hover:border-blue-500/30 transition group overflow-hidden relative shadow-2xl"
                 >
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="vnpay"
-                    checked={paymentMethod === "vnpay"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-5 h-5 text-blue-600"
-                  />
-                  <div className="ml-4 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded flex items-center justify-center font-bold text-xs">
-                      VNPAY
-                    </div>
+                  <div className="w-full sm:w-40 aspect-video overflow-hidden rounded-xl shrink-0">
+                    <img
+                      src={
+                        course.thumbnail_url
+                          ? `http://localhost:5000${course.thumbnail_url}`
+                          : "https://via.placeholder.com/300x168"
+                      }
+                      alt={course.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                    />
+                  </div>
+                  <div className="flex-1 flex flex-col justify-between py-1">
                     <div>
-                      <p className="font-bold text-gray-800">
-                        Cổng thanh toán VNPay
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Thanh toán qua thẻ ATM nội địa / QR Code
+                      <div className="flex justify-between items-start mb-2">
+                        <h2 className="text-lg font-bold text-white group-hover:text-blue-400 transition line-clamp-2">
+                          {course.title}
+                        </h2>
+                        <span className="text-lg font-black text-blue-400 ml-4 shrink-0">
+                          ₫{course.price?.toLocaleString("vi-VN")}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mb-2">
+                        By {course.lecturer?.name || "Anonymous Expert"}
                       </p>
                     </div>
                   </div>
-                </label>
+                </div>
+              ))}
+            </div>
 
-                {/* Lựa chọn 2: MoMo */}
-                <label
-                  className={`flex items-center p-4 border rounded-lg cursor-pointer transition ${paymentMethod === "momo" ? "border-pink-500 bg-pink-50" : "border-gray-200 hover:bg-gray-50"}`}
+            {/* Trust Badges */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { icon: "lock", text: "SECURE PAYMENT" },
+                { icon: "verified_user", text: "DATA PROTECTION" },
+                { icon: "support_agent", text: "24/7 SUPPORT" },
+              ].map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-center gap-3 bg-[#111827] border border-slate-800 p-4 rounded-xl text-slate-400 font-black text-[10px] tracking-widest uppercase"
                 >
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="momo"
-                    checked={paymentMethod === "momo"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-5 h-5 text-pink-600"
-                  />
-                  <div className="ml-4 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-pink-100 text-pink-600 rounded flex items-center justify-center font-bold text-xs">
-                      MoMo
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-800">Ví điện tử MoMo</p>
-                      <p className="text-sm text-gray-500">
-                        Quét mã QR qua ứng dụng MoMo
-                      </p>
-                    </div>
-                  </div>
-                </label>
-
-                {/* Lựa chọn 3: Thẻ quốc tế */}
-                <label
-                  className={`flex items-center p-4 border rounded-lg cursor-pointer transition ${paymentMethod === "card" ? "border-gray-800 bg-gray-100" : "border-gray-200 hover:bg-gray-50"}`}
-                >
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="card"
-                    checked={paymentMethod === "card"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-5 h-5 text-gray-900"
-                  />
-                  <div className="ml-4 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-200 text-gray-700 rounded flex items-center justify-center">
-                      <svg
-                        className="w-6 h-6"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path>
-                        <path
-                          fillRule="evenodd"
-                          d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"
-                          clipRule="evenodd"
-                        ></path>
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-800">
-                        Thẻ Tín dụng / Ghi nợ
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Visa, Mastercard, JCB
-                      </p>
-                    </div>
-                  </div>
-                </label>
-              </div>
+                  <span className="material-symbols-outlined text-xl text-blue-500">
+                    {item.icon}
+                  </span>
+                  {item.text}
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* CỘT PHẢI: Tóm tắt đơn hàng (Order Summary) */}
-          <div className="w-full md:w-96 flex-shrink-0">
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 sticky top-24">
-              <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-4">
-                Tóm tắt đơn hàng
-              </h2>
+          {/* RIGHT COLUMN: Payment Sidebar */}
+          <div className="w-full lg:w-[450px] flex-shrink-0">
+            <div className="bg-[#1c2431] border border-slate-700 rounded-2xl shadow-2xl overflow-hidden sticky top-8">
+              <div className="p-8">
+                <h2 className="text-2xl font-black text-white mb-8">
+                  Payment Details
+                </h2>
 
-              {/* Thông tin khóa học */}
-              <div className="flex gap-4 mb-6">
-                <img
-                  src={
-                    course.thumbnail_url
-                      ? `http://localhost:5000${course.thumbnail_url}`
-                      : "https://via.placeholder.com/150"
-                  }
-                  alt={course.title}
-                  className="w-20 h-14 object-cover rounded shadow-sm"
-                />
-                <div className="flex-1">
-                  <h3 className="font-bold text-gray-800 line-clamp-2 text-sm">
-                    {course.title}
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {course.lecturer?.name}
-                  </p>
-                </div>
-              </div>
-
-              {/* Tính toán giá */}
-              <div className="space-y-3 text-sm text-gray-600 border-b pb-4 mb-4">
-                <div className="flex justify-between">
-                  <span>Giá gốc:</span>
-                  <span>
-                    {course.price === 0
-                      ? "0 đ"
-                      : `${course.price.toLocaleString("vi-VN")} đ`}
-                  </span>
-                </div>
-                <div className="flex justify-between text-green-600">
-                  <span>Giảm giá:</span>
-                  <span>- 0 đ</span>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center mb-6">
-                <span className="font-bold text-lg text-gray-800">
-                  Tổng cộng:
-                </span>
-                <span className="text-2xl font-bold text-gray-900">
-                  {course.price === 0
-                    ? "Miễn phí"
-                    : `${course.price.toLocaleString("vi-VN")} đ`}
-                </span>
-              </div>
-
-              <p className="text-xs text-gray-500 mb-4 text-center">
-                Bằng việc hoàn tất giao dịch, bạn đồng ý với Điều khoản dịch vụ
-                của chúng tôi.
-              </p>
-
-              {/* Nút bấm thanh toán có hiệu ứng Loading */}
-              <button
-                onClick={handleCheckout}
-                disabled={processing}
-                className={`w-full py-4 text-white font-bold rounded-lg transition text-lg flex justify-center items-center ${processing ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl"}`}
-              >
-                {processing ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
+                {/* Tabs */}
+                <div className="grid grid-cols-3 gap-2 p-1 bg-[#111827] rounded-xl mb-8">
+                  {[
+                    { id: "card", label: "Card", icon: "credit_card" },
+                    { id: "paypal", label: "PayPal", icon: "payments" },
+                    {
+                      id: "transfer",
+                      label: "Transfer",
+                      icon: "account_balance",
+                    },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setPaymentMethod(tab.id)}
+                      className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-lg transition-all duration-300 ${paymentMethod === tab.id ? "bg-blue-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"}`}
                     >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Đang xử lý...
-                  </>
-                ) : (
-                  "Xác nhận thanh toán"
-                )}
-              </button>
+                      <span className="material-symbols-outlined text-xl">
+                        {tab.icon}
+                      </span>
+                      <span className="text-[10px] font-black uppercase tracking-wider">
+                        {tab.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Form Inputs (Card specific) */}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                      Cardholder Name
+                    </label>
+                    <div className="relative">
+                      <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg">
+                        person
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="John Doe"
+                        className="w-full bg-[#111827] border border-slate-800 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition font-medium placeholder:text-slate-700"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                      Card Number
+                    </label>
+                    <div className="relative">
+                      <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg">
+                        credit_card
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="0000 0000 0000 0000"
+                        className="w-full bg-[#111827] border border-slate-800 rounded-xl py-4 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition font-medium placeholder:text-slate-700 tracking-widest"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <div className="flex-1 space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                        Expiry
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="MM/YY"
+                        className="w-full bg-[#111827] border border-slate-800 rounded-xl py-4 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition font-medium placeholder:text-slate-700 text-center"
+                      />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                        CVC
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="123"
+                        className="w-full bg-[#111827] border border-slate-800 rounded-xl py-4 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition font-medium placeholder:text-slate-700 text-center"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-px bg-slate-800 my-8"></div>
+
+                {/* Price Breakdown */}
+                <div className="mt-8 space-y-4">
+                  <div className="flex justify-between text-sm font-medium">
+                    <span className="text-slate-500">
+                      Original Price ({courses.length} items)
+                    </span>
+                    <span className="text-white font-bold">
+                      ₫{originalTotal?.toLocaleString("vi-VN")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm font-medium">
+                    <span className="text-slate-500">Discounts</span>
+                    <span className="text-red-400 font-bold">
+                      - ₫{discounts?.toLocaleString("vi-VN")}
+                    </span>
+                  </div>
+
+                  <div className="h-px bg-slate-800 my-4"></div>
+
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <div className="text-2xl font-black text-white">
+                        Total
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
+                        VAT Included
+                      </div>
+                    </div>
+                    <div className="text-3xl font-black text-white tracking-tight">
+                      ₫{total?.toLocaleString("vi-VN")}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleCheckout}
+                  disabled={processing}
+                  className="w-full mt-10 py-5 bg-blue-600 hover:bg-blue-700 text-white font-black text-lg rounded-2xl transition-all duration-300 shadow-xl shadow-blue-600/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed group flex items-center justify-center gap-3"
+                >
+                  {processing ? (
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                  ) : (
+                    <>
+                      Complete Payment{" "}
+                      <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">
+                        arrow_forward
+                      </span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
