@@ -20,6 +20,7 @@ import Footer from "./components/Footer";
 import Notifications from "./pages/Notifications";
 import DashboardNotifications from "./pages/DashboardNotifications";
 import Cart from "./pages/Cart";
+import Profile from "./pages/Profile";
 import { ChatProvider } from "./context/ChatContext";
 import Chatbot from "./components/Chatbot";
 
@@ -33,6 +34,14 @@ function App() {
             <div className="min-h-screen bg-[#0b1120]">
               <Routes>
                 {/* Tất cả routes giữ nguyên */}
+                <Route
+                  element={
+                    <ProtectedRoute allowedRoles={["STUDENT", "LECTURER"]} />
+                  }
+                >
+                  <Route path="/profile" element={<Profile />} />
+                </Route>
+
                 <Route
                   element={
                     <ProtectedRoute

@@ -68,10 +68,18 @@ const Navbar = () => {
     navigate("/login");
   };
 
+  // Synchronize search input with URL query param
+  useEffect(() => {
+    const searchParam = new URLSearchParams(location.search).get("search");
+    setNavSearch(searchParam || "");
+  }, [location.search]);
+
   const handleNavSearch = (e) => {
     e.preventDefault();
     if (navSearch.trim()) {
       navigate(`/courses?search=${encodeURIComponent(navSearch.trim())}`);
+    } else {
+      navigate("/courses");
     }
   };
 
@@ -124,11 +132,16 @@ const Navbar = () => {
           {/* Middle: Search Bar */}
           <div className="flex-1 max-w-md mx-6 hidden lg:block">
             <form onSubmit={handleNavSearch} className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full blur opacity-0 group-hover:opacity-20 transition duration-300"></div>
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full blur opacity-5 group-hover:opacity-20 transition duration-300"></div>
               <div className="relative flex items-center bg-slate-900/50 border border-slate-700/50 rounded-full px-4 py-1.5 focus-within:border-blue-500/50 focus-within:bg-slate-900 transition-all duration-300">
-                <span className="material-symbols-outlined text-slate-500 text-lg mr-2">
-                  search
-                </span>
+                <button
+                  type="submit"
+                  className="flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-slate-500 text-lg mr-2 hover:text-blue-400 transition-colors">
+                    search
+                  </span>
+                </button>
                 <input
                   type="text"
                   value={navSearch}
@@ -307,6 +320,30 @@ const Navbar = () => {
                         ></div>
                       </div>
                     </Link>
+
+                    {(user.role === "STUDENT" || user.role === "LECTURER") && (
+                      <Link
+                        to="/profile"
+                        className="flex items-center gap-3 p-3 text-slate-300 hover:bg-slate-700/50 hover:text-white rounded-md transition group/item"
+                      >
+                        <svg
+                          className="w-5 h-5 text-slate-400 group-hover/item:text-blue-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                        <span className="font-semibold text-sm">
+                          Update Profile
+                        </span>
+                      </Link>
+                    )}
                   </div>
 
                   {/* Logout Row */}
