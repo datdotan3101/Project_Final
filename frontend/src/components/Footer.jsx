@@ -1,7 +1,10 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const Footer = () => {
+  const { user } = useAuth();
+
   return (
     <footer className="bg-[#0b1120] border-t border-slate-800 text-slate-400 py-12 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="max-w-7xl mx-auto">
@@ -9,7 +12,14 @@ const Footer = () => {
           {/* Column 1: EduMarket Business */}
           <div className="flex flex-col gap-3">
             <h3 className="text-white font-bold mb-2">EduMarket Business</h3>
-            <Link to="#" className="text-sm hover:underline">
+            <Link
+              to={
+                user?.role === "LECTURER" || user?.role === "ADMIN"
+                  ? "/lecturer/dashboard"
+                  : "/become-lecturer"
+              }
+              className="text-sm hover:underline"
+            >
               Teach on EduMarket
             </Link>
             <Link to="#" className="text-sm hover:underline">

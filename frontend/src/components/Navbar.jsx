@@ -29,6 +29,7 @@ const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotiOpen, setIsNotiOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [navSearch, setNavSearch] = useState("");
   const notiRef = useRef(null);
 
   useEffect(() => {
@@ -65,6 +66,13 @@ const Navbar = () => {
   const handleLogout = () => {
     logout();
     navigate("/login");
+  };
+
+  const handleNavSearch = (e) => {
+    e.preventDefault();
+    if (navSearch.trim()) {
+      navigate(`/courses?search=${encodeURIComponent(navSearch.trim())}`);
+    }
   };
 
   const timeoutRef = useRef(null);
@@ -111,6 +119,25 @@ const Navbar = () => {
                 Teach on Platform
               </Link>
             </div>
+          </div>
+
+          {/* Middle: Search Bar */}
+          <div className="flex-1 max-w-md mx-6 hidden lg:block">
+            <form onSubmit={handleNavSearch} className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full blur opacity-0 group-hover:opacity-20 transition duration-300"></div>
+              <div className="relative flex items-center bg-slate-900/50 border border-slate-700/50 rounded-full px-4 py-1.5 focus-within:border-blue-500/50 focus-within:bg-slate-900 transition-all duration-300">
+                <span className="material-symbols-outlined text-slate-500 text-lg mr-2">
+                  search
+                </span>
+                <input
+                  type="text"
+                  value={navSearch}
+                  onChange={(e) => setNavSearch(e.target.value)}
+                  placeholder="Search for anything..."
+                  className="bg-transparent border-none text-slate-200 text-sm w-full focus:outline-none placeholder:text-slate-600"
+                />
+              </div>
+            </form>
           </div>
 
           {/* Right: Search, Cart, Noti, Profile */}

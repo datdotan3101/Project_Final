@@ -16,10 +16,13 @@ const BecomeLecturer = () => {
       return;
     }
 
+    if (user.role === "LECTURER" || user.role === "ADMIN") {
+      navigate("/lecturer/dashboard");
+      return;
+    }
+
     // Set initial status based on user data
-    if (user.role === "LECTURER") {
-      setStatus("approved");
-    } else if (user.status === "PENDING_LECTURER") {
+    if (user.status === "PENDING_LECTURER") {
       setStatus("pending");
     } else {
       setStatus("idle");
@@ -158,39 +161,6 @@ const BecomeLecturer = () => {
               <div className="bg-slate-800/50 px-4 py-2 rounded-lg inline-block text-yellow-400 text-sm font-semibold border border-yellow-400/20">
                 Current Status: Under Review
               </div>
-            </div>
-          )}
-
-          {status === "approved" && (
-            <div className="relative z-10 py-4">
-              <div className="w-16 h-16 bg-green-400/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg
-                  className="w-8 h-8 text-green-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-green-400 mb-2">
-                You're already an Instructor!
-              </h2>
-              <p className="text-slate-400 mb-8">
-                Welcome to the team! You can now start creating your own courses
-                and sharing your knowledge.
-              </p>
-              <button
-                onClick={() => navigate("/lecturer/dashboard")}
-                className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-10 rounded-xl transition duration-300 shadow-lg shadow-green-600/20"
-              >
-                Go to Dashboard
-              </button>
             </div>
           )}
 
