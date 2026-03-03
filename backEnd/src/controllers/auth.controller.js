@@ -191,6 +191,31 @@ export const forgotPassword = async (req, res) => {
       .json({ message: "Lỗi server khi yêu cầu khôi phục mật khẩu." });
   }
 };
+// [POST] /api/auth/verify-otp
+export const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    const user = await prisma.user.findFirst({
+      where: {
+        email: email,
+        resetPasswordToken: otp,
+        resetPasswordExpires: { gt: new Date() },
+      },
+    });
+
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: "Mã OTP không chính xác hoặc đã hết hạn!" });
+    }
+
+    res.status(200).json({ message: "Xác thực OTP thành công!" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Lỗi server khi xác thực OTP." });
+  }
+};
 
 // [POST] /api/auth/reset-password
 export const resetPassword = async (req, res) => {
