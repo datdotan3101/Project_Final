@@ -1,5 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import nodemailer from "nodemailer";
 import prisma from "../config/db.js";
 
 // [POST] /api/auth/register
@@ -111,5 +113,119 @@ export const login = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Lỗi server khi đăng nhập." });
+  }
+};
+
+// [POST] /api/auth/forgot-password
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy người dùng với email này!" });
+    }
+
+    // Tạo mã OTP 6 số ngẫu nhiên
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const resetExpires = new Date(Date.now() + 600000); // OTP có hiệu lực trong 10 phút (600.000ms)
+
+    await prisma.user.update({
+      where: { email },
+      data: {
+        resetPasswordToken: otp,
+        resetPasswordExpires: resetExpires,
+      },
+    });
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Mã OTP khôi phục mật khẩu",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
+          <h2 style="text-align: center; color: #1d4ed8;">Khôi phục mật khẩu</h2>
+          <p>Chào bạn,</p>
+          <p>Bạn đã yêu cầu mã OTP để khôi phục mật khẩu. Mã OTP của bạn là:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1d4ed8; background: #f3f4f6; padding: 10px 20px; border-radius: 5px;">${otp}</span>
+          </div>
+          <p>Mã này có hiệu lực trong <b>10 phút</b>. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
+          <p>Nếu bạn không yêu cầu điều này, vui lòng bỏ qua email này.</p>
+          <hr style="border: none; border-top: 1px solid #eee;" />
+          <p style="font-size: 12px; color: #888; text-align: center;">Hệ thống học trực tuyến - Project Final</p>
+        </div>
+      `,
+    };
+
+    try {
+      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        await transporter.sendMail(mailOptions);
+      } else {
+        console.log("------------------------------------------");
+        console.log(`Email check: ${email}`);
+        console.log(`Mã OTP của bạn là: ${otp}`);
+        console.log("------------------------------------------");
+      }
+    } catch (mailError) {
+      console.error("Lỗi gửi email:", mailError);
+    }
+
+    res.status(200).json({
+      message: "Mã OTP đã được gửi tới email của bạn!",
+    });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: "Lỗi server khi yêu cầu khôi phục mật khẩu." });
+  }
+};
+
+// [POST] /api/auth/reset-password
+export const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, password } = req.body;
+
+    const user = await prisma.user.findFirst({
+      where: {
+        email: email,
+        resetPasswordToken: otp,
+        resetPasswordExpires: { gt: new Date() },
+      },
+    });
+
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: "Mã OTP không chính xác hoặc đã hết hạn!" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password_hash: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+      },
+    });
+
+    res.status(200).json({ message: "Mật khẩu đã được thay đổi thành công!" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Lỗi server khi khôi phục mật khẩu." });
   }
 };

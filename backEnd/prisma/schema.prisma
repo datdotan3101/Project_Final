@@ -33,6 +33,8 @@ model User {
   name          String
   email         String           @unique
   password_hash String
+  avatar_url    String?
+  bio           String?
   role          Role             @default(STUDENT)
   status        UserStatus       @default(ACTIVE)
   
@@ -42,6 +44,9 @@ model User {
   reviews       Review[]
   progress      LessonProgress[]
   wishlists     Wishlist[]
+
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
 
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt

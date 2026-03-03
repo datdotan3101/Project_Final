@@ -73,9 +73,17 @@ const Login = () => {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-gray-700">
-              Mật khẩu
-            </label>
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-semibold text-gray-700">
+                Mật khẩu
+              </label>
+              <Link
+                to="/forgot-password"
+                className="text-xs font-semibold text-blue-600 hover:text-blue-500 hover:underline transition duration-200"
+              >
+                Quên mật khẩu?
+              </Link>
+            </div>
             <input
               type="password"
               value={password}

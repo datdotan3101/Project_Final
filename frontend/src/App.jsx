@@ -21,6 +21,8 @@ import Notifications from "./pages/Notifications";
 import DashboardNotifications from "./pages/DashboardNotifications";
 import Cart from "./pages/Cart";
 import Profile from "./pages/Profile";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import { ChatProvider } from "./context/ChatContext";
 import Chatbot from "./components/Chatbot";
 
@@ -62,6 +64,8 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/course/:id" element={<CourseDetail />} />
                 <Route path="/courses" element={<Courses />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password/:token" element={<ResetPassword />} />
 
                 <Route
                   element={
