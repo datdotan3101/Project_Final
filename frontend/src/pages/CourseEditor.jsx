@@ -9,6 +9,12 @@ const CourseEditor = () => {
   const isEditMode = Boolean(id);
 
   const [step, setStep] = useState(1);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const [formData, setFormData] = useState({
     title: "",
@@ -61,7 +67,7 @@ const CourseEditor = () => {
 
           setLoading(false);
         } catch (err) {
-          alert("Không thể tải thông tin khóa học!");
+          showToast("Không thể tải thông tin khóa học!", "error");
           navigate("/lecturer/dashboard");
         }
       };
@@ -106,7 +112,7 @@ const CourseEditor = () => {
   };
 
   const handleSaveAndContinue = async () => {
-    if (!formData.title) return alert("Vui lòng nhập tên khóa học");
+    if (!formData.title) return showToast("Vui lòng nhập tên khóa học", "error");
     setSaving(true);
     try {
       const token = localStorage.getItem("token");
@@ -128,6 +134,7 @@ const CourseEditor = () => {
             "Content-Type": "multipart/form-data",
           },
         });
+        showToast("Cập nhật thông tin thành công!", "success");
         setStep(2);
       } else {
         const response = await axios.post(
@@ -140,13 +147,14 @@ const CourseEditor = () => {
             },
           },
         );
+        showToast("Tạo khóa học thành công!", "success");
         navigate(`/lecturer/course/edit/${response.data.course.id}`, {
           replace: true,
         });
         setStep(2);
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Có lỗi xảy ra!");
+      showToast(err.response?.data?.message || "Có lỗi xảy ra!", "error");
     } finally {
       setSaving(false);
     }
@@ -164,9 +172,11 @@ const CourseEditor = () => {
       );
 
       setShowPublishModal(false);
-      navigate("/lecturer/dashboard");
+      showToast("Gửi yêu cầu duyệt thành công!", "success");
+      // Delay navigation slightly to let the user see the toast
+      setTimeout(() => navigate("/lecturer/dashboard"), 1500);
     } catch (err) {
-      alert("Lỗi khi gửi yêu cầu duyệt khóa học!");
+      showToast("Lỗi khi gửi yêu cầu duyệt khóa học!", "error");
     } finally {
       setSaving(false);
     }
@@ -570,6 +580,38 @@ const CourseEditor = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Custom Toast UI */}
+      {toast && (
+        <div
+          className={`fixed bottom-8 right-8 z-[9999] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300 border ${
+            toast.type === "success"
+              ? "bg-[#1e293b] text-white border-green-500/30"
+              : "bg-[#1e293b] text-white border-red-500/30"
+          }`}
+        >
+          <div
+            className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              toast.type === "success"
+                ? "bg-green-600/20 text-green-400"
+                : "bg-red-600/20 text-red-400"
+            }`}
+          >
+            {toast.type === "success" ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+          </div>
+          <span className="font-bold text-sm tracking-wide">
+            {toast.message}
+          </span>
         </div>
       )}
     </div>

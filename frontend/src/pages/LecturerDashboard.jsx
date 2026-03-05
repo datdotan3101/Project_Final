@@ -9,8 +9,15 @@ const LecturerDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeDropdown, setActiveDropdown] = useState(null); // Track which course dropdown is open
   const [currentPage, setCurrentPage] = useState(1);
+  const [toast, setToast] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, courseId: null });
   const itemsPerPage = 10;
   const navigate = useNavigate();
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -92,10 +99,16 @@ const LecturerDashboard = () => {
     };
   };
 
-  const handleDeleteCourse = async (courseId) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa khóa học này không? Hành động này không thể hoàn tác.")) {
-      return;
-    }
+  const handleDeleteClick = (courseId) => {
+    setDeleteModal({ isOpen: true, courseId });
+  };
+
+  const confirmDeleteCourse = async () => {
+    const courseId = deleteModal.courseId;
+    if (!courseId) return;
+
+    // Đóng modal trước khi gọi API (hoặc có thể show loading)
+    setDeleteModal({ isOpen: false, courseId: null });
 
     try {
       const token = localStorage.getItem("token");
@@ -105,11 +118,15 @@ const LecturerDashboard = () => {
       
       // Update local state
       setMyCourses((prev) => prev.filter((course) => course.id !== courseId));
-      alert("Đã xóa khóa học thành công!");
+      showToast("Đã xóa khóa học thành công!", "success");
     } catch (err) {
       console.error(err);
-      alert("Lỗi khi xóa khóa học.");
+      showToast("Lỗi khi xóa khóa học.", "error");
     }
+  };
+
+  const cancelDeleteCourse = () => {
+    setDeleteModal({ isOpen: false, courseId: null });
   };
 
   const dashboardStats = calculateDashboardStats();
@@ -465,7 +482,7 @@ const LecturerDashboard = () => {
                                     <button
                                       onClick={() => {
                                         setActiveDropdown(null);
-                                        handleDeleteCourse(course.id);
+                                        handleDeleteClick(course.id);
                                       }}
                                       className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition flex items-center gap-3"
                                     >
@@ -597,6 +614,86 @@ const LecturerDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Custom Toast UI */}
+      {toast && (
+        <div
+          className={`fixed bottom-8 right-8 z-[9999] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300 border ${
+            toast.type === "success"
+              ? "bg-[#1e293b] text-white border-green-500/30"
+              : "bg-[#1e293b] text-white border-red-500/30"
+          }`}
+        >
+          <div
+            className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              toast.type === "success"
+                ? "bg-green-600/20 text-green-400"
+                : "bg-red-600/20 text-red-400"
+            }`}
+          >
+            {toast.type === "success" ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+          </div>
+          <span className="font-bold text-sm tracking-wide">
+            {toast.message}
+          </span>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={cancelDeleteCourse}
+          ></div>
+          <div className="relative bg-[#1e293b] border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+                <svg
+                  className="w-6 h-6 text-red-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Xác nhận xóa khóa học</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Bạn có chắc chắn muốn xóa khóa học này không? Hành động này sẽ
+                xóa vĩnh viễn khóa học và không thể hoàn tác.
+              </p>
+            </div>
+            <div className="bg-slate-800/50 px-6 py-4 flex gap-3 justify-end items-center">
+              <button
+                onClick={cancelDeleteCourse}
+                className="px-5 py-2.5 text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-700 rounded-xl transition-all"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={confirmDeleteCourse}
+                className="px-5 py-2.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all shadow-lg shadow-red-600/20"
+              >
+                Xóa Khóa Học
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
