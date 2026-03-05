@@ -7,7 +7,21 @@ const LecturerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("Courses");
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeDropdown, setActiveDropdown] = useState(null); // Track which course dropdown is open
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const navigate = useNavigate();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest(".course-action-menu")) {
+        setActiveDropdown(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const fetchMyCourses = async () => {
@@ -76,6 +90,26 @@ const LecturerDashboard = () => {
       totalReviews: totalReviewCount,
       thisMonthRevenue: thisMonthRevenue.toLocaleString("vi-VN") + " đ",
     };
+  };
+
+  const handleDeleteCourse = async (courseId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa khóa học này không? Hành động này không thể hoàn tác.")) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:5000/api/courses/${courseId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      // Update local state
+      setMyCourses((prev) => prev.filter((course) => course.id !== courseId));
+      alert("Đã xóa khóa học thành công!");
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi khi xóa khóa học.");
+    }
   };
 
   const dashboardStats = calculateDashboardStats();
@@ -322,6 +356,7 @@ const LecturerDashboard = () => {
               .filter((c) =>
                 c.title.toLowerCase().includes(searchQuery.toLowerCase()),
               )
+              .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
               .map((course) => {
                 const enrollmentCount = course.enrollments?.length || 0;
                 const ratings = course.reviews || [];
@@ -388,28 +423,11 @@ const LecturerDashboard = () => {
                           <h3 className="text-lg font-extrabold text-white group-hover:text-blue-400 transition leading-tight">
                             {course.title}
                           </h3>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 relative course-action-menu">
                             <button
-                              onClick={() =>
-                                navigate(`/lecturer/course/edit/${course.id}`)
-                              }
+                              onClick={() => setActiveDropdown(activeDropdown === course.id ? null : course.id)}
                               className="p-2 text-slate-500 hover:text-white hover:bg-slate-700 rounded-lg transition"
                             >
-                              <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="2"
-                                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                                />
-                              </svg>
-                            </button>
-                            <button className="p-2 text-slate-500 hover:text-white hover:bg-slate-700 rounded-lg transition">
                               <svg
                                 className="w-5 h-5"
                                 fill="none"
@@ -424,6 +442,42 @@ const LecturerDashboard = () => {
                                 />
                               </svg>
                             </button>
+
+                            {/* Dropdown Menu */}
+                            {activeDropdown === course.id && (
+                              <div className="absolute right-0 top-12 w-48 bg-[#1e293b] border border-slate-700 rounded-xl shadow-2xl py-2 z-50 overflow-hidden">
+                                <button
+                                  onClick={() => {
+                                    setActiveDropdown(null);
+                                    navigate(`/lecturer/course/edit/${course.id}`);
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-700/50 transition flex items-center gap-3"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                  </svg>
+                                  Edit Course
+                                </button>
+
+                                {course.status === "PENDING" && (
+                                  <>
+                                    <div className="h-px bg-slate-700/50 my-1"></div>
+                                    <button
+                                      onClick={() => {
+                                        setActiveDropdown(null);
+                                        handleDeleteCourse(course.id);
+                                      }}
+                                      className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition flex items-center gap-3"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                      Delete Course
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <p className="text-sm text-slate-500 mt-2 line-clamp-1 max-w-2xl">
@@ -473,7 +527,8 @@ const LecturerDashboard = () => {
                             {thisMonthRevenue.toLocaleString("vi-VN")} đ
                           </span>
                         </div>
-                        <div className="flex items-center justify-end">
+                        <div className="flex items-center justify-end gap-4">
+                         
                           <button
                             onClick={() =>
                               navigate(`/lecturer/course/edit/${course.id}`)
@@ -508,45 +563,35 @@ const LecturerDashboard = () => {
         )}
 
         {/* Pagination */}
-        {myCourses.length > 0 && (
+        {myCourses.filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 && (
           <div className="flex justify-center items-center gap-2 mt-12">
-            <button className="w-10 h-10 border border-slate-700 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-800 transition">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2.5"
-                  d="M15 19l-7-7 7-7"
-                />
+            <button 
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className={`w-10 h-10 border border-slate-700 rounded-lg flex items-center justify-center transition ${currentPage === 1 ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <button className="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center text-sm font-bold shadow-lg shadow-blue-600/20">
-              1
-            </button>
-            <button className="w-10 h-10 border border-slate-700 text-slate-400 rounded-lg flex items-center justify-center text-sm font-bold hover:bg-slate-800 transition">
-              2
-            </button>
-            <button className="w-10 h-10 border border-slate-700 text-slate-400 rounded-lg flex items-center justify-center text-sm font-bold hover:bg-slate-800 transition">
-              3
-            </button>
-            <button className="w-10 h-10 border border-slate-700 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-800 transition">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            
+            {Array.from({ length: Math.ceil(myCourses.filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase())).length / itemsPerPage) }).map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCurrentPage(idx + 1)}
+                className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold transition ${currentPage === idx + 1 ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'border border-slate-700 text-slate-400 hover:bg-slate-800'}`}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2.5"
-                  d="M9 5l7 7-7 7"
-                />
+                {idx + 1}
+              </button>
+            ))}
+
+            <button 
+              onClick={() => setCurrentPage(p => Math.min(Math.ceil(myCourses.filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase())).length / itemsPerPage), p + 1))}
+              disabled={currentPage === Math.ceil(myCourses.filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase())).length / itemsPerPage)}
+              className={`w-10 h-10 border border-slate-700 rounded-lg flex items-center justify-center transition ${currentPage === Math.ceil(myCourses.filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase())).length / itemsPerPage) ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
               </svg>
             </button>
           </div>
