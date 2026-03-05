@@ -16,6 +16,7 @@ const CourseEditor = () => {
     difficulty: "all",
     description: "",
     price: 0,
+    learningOutcomes: [""], // Khởi tạo với 1 ô input rỗng
   });
 
   const [thumbnailFile, setThumbnailFile] = useState(null);
@@ -32,11 +33,25 @@ const CourseEditor = () => {
           const res = await axios.get(
             `http://localhost:5000/api/courses/${id}`,
           );
+          let outcomes = [""];
+          if (res.data.learning_outcomes) {
+            // Handle parsing if the backend returns a JSON string instead of an array
+            if (typeof res.data.learning_outcomes === 'string') {
+              try {
+                const parsed = JSON.parse(res.data.learning_outcomes);
+                if (Array.isArray(parsed) && parsed.length > 0) outcomes = parsed;
+              } catch (e) { console.error(e); }
+            } else if (Array.isArray(res.data.learning_outcomes) && res.data.learning_outcomes.length > 0) {
+              outcomes = res.data.learning_outcomes;
+            }
+          }
+
           setFormData({
             title: res.data.title,
             category: res.data.category || "Development",
             description: res.data.description,
             price: res.data.price,
+            learningOutcomes: outcomes,
           });
 
           // Nếu khóa học đã có ảnh bìa, hiển thị nó lên
@@ -67,6 +82,29 @@ const CourseEditor = () => {
     }
   };
 
+  const handleAddOutcome = () => {
+    setFormData(prev => ({
+      ...prev,
+      learningOutcomes: [...prev.learningOutcomes, ""]
+    }));
+  };
+
+  const handleRemoveOutcome = (index) => {
+    setFormData(prev => {
+      const newOutcomes = [...prev.learningOutcomes];
+      newOutcomes.splice(index, 1);
+      return { ...prev, learningOutcomes: newOutcomes };
+    });
+  };
+
+  const handleOutcomeChange = (index, value) => {
+    setFormData(prev => {
+      const newOutcomes = [...prev.learningOutcomes];
+      newOutcomes[index] = value;
+      return { ...prev, learningOutcomes: newOutcomes };
+    });
+  };
+
   const handleSaveAndContinue = async () => {
     if (!formData.title) return alert("Vui lòng nhập tên khóa học");
     setSaving(true);
@@ -77,6 +115,10 @@ const CourseEditor = () => {
       data.append("category", formData.category);
       data.append("description", formData.description);
       data.append("price", formData.price);
+      
+      const filteredOutcomes = formData.learningOutcomes.filter(outcome => outcome.trim() !== "");
+      data.append("learningOutcomes", JSON.stringify(filteredOutcomes));
+
       if (thumbnailFile) data.append("thumbnail", thumbnailFile);
 
       if (isEditMode) {
@@ -299,6 +341,45 @@ const CourseEditor = () => {
                   className="w-full bg-[#0f172a] border border-slate-600 rounded-b p-3 text-white focus:outline-none focus:border-blue-500"
                   placeholder="Describe what students will learn in your course..."
                 />
+              </div>
+
+              {/* Box: Learning Outcomes */}
+              <div className="bg-[#1e293b] p-6 rounded-lg border border-slate-700 space-y-4">
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-1">What will students learn in your course?</h3>
+                  <p className="text-sm text-slate-400 mb-4">You must enter at least 1 learning objective or outcome that learners can expect to achieve after completing your course.</p>
+                </div>
+                
+                {formData.learningOutcomes.map((outcome, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      value={outcome}
+                      onChange={(e) => handleOutcomeChange(index, e.target.value)}
+                      placeholder="Example: Define the roles and responsibilities of a project manager"
+                      className="flex-1 bg-[#0f172a] border border-slate-600 rounded p-3 text-white focus:outline-none focus:border-blue-500"
+                    />
+                    <button 
+                      onClick={() => handleRemoveOutcome(index)}
+                      disabled={formData.learningOutcomes.length === 1}
+                      className={`p-3 border rounded transition ${formData.learningOutcomes.length === 1 ? 'border-slate-700 text-slate-600 cursor-not-allowed' : 'border-slate-600 text-slate-400 hover:text-red-400 hover:border-red-400'}`}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+                
+                <button 
+                  onClick={handleAddOutcome}
+                  className="mt-2 text-blue-500 hover:text-blue-400 font-bold text-sm flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add more to your response
+                </button>
               </div>
 
               {/* ================= THUMBNAIL BOX NÂNG CẤP ================= */}

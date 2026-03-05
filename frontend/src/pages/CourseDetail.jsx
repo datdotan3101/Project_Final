@@ -303,26 +303,21 @@ const CourseDetail = () => {
               What you'll learn
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3">
-              {[
-                "Learn JavaScript from scratch and in great detail - from beginner to advanced",
-                "Everything you need to become a JavaScript expert and apply for JavaScript jobs",
-                "All about variables, functions, objects and arrays",
-                "Deep dives into prototypes, JavaScript engines & how it works behind the scenes",
-                "Project-driven learning with plenty of examples",
-                "Object-oriented programming",
-                "Manipulating web pages (= the DOM) with JavaScript",
-                "All core features and concepts you need to know in modern JavaScript development",
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  className="flex gap-4 text-sm leading-relaxed text-[#d1d7dc]"
-                >
-                  <span className="material-symbols-outlined text-slate-400 text-sm mt-1">
-                    check
-                  </span>
-                  {item}
-                </div>
-              ))}
+              {course.learning_outcomes && course.learning_outcomes.length > 0 ? (
+                course.learning_outcomes.map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex gap-4 text-sm leading-relaxed text-[#d1d7dc]"
+                  >
+                    <span className="material-symbols-outlined text-slate-400 text-sm mt-1">
+                      check
+                    </span>
+                    {item}
+                  </div>
+                ))
+              ) : (
+                <div className="text-sm text-slate-400 italic">No learning outcomes specified for this course.</div>
+              )}
             </div>
             <button className="mt-6 text-blue-400 font-bold text-sm hover:text-blue-300">
               Show more ⌵

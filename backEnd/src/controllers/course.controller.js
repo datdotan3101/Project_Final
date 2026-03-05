@@ -3,10 +3,19 @@ import prisma from "../config/db.js";
 // [POST] Tạo khóa học mới (Lecturer)
 export const createCourse = async (req, res) => {
   try {
-    const { title, description, price, category } = req.body;
+    const { title, description, price, category, learningOutcomes } = req.body;
 
     // Lấy đường dẫn file ảnh vừa upload (nếu có)
     const thumbnail_url = req.file ? `/uploads/${req.file.filename}` : null;
+
+    let parsedOutcomes = [];
+    if (learningOutcomes) {
+      try {
+        parsedOutcomes = typeof learningOutcomes === 'string' ? JSON.parse(learningOutcomes) : learningOutcomes;
+      } catch (e) {
+        console.error("Error parsing learningOutcomes", e);
+      }
+    }
 
     const newCourse = await prisma.course.create({
       data: {
@@ -15,6 +24,7 @@ export const createCourse = async (req, res) => {
         category: category || "Development",
         price: parseFloat(price || 0),
         thumbnail_url,
+        learning_outcomes: parsedOutcomes,
         lecturer_id: req.user.id, // Lấy ID của Lecturer từ Token
         status: "PENDING", // Mặc định chờ Admin duyệt
       },
@@ -219,7 +229,7 @@ export const getCourseById = async (req, res) => {
 export const updateCourse = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, price, category, status, admin_comment } =
+    const { title, description, price, category, status, admin_comment, learningOutcomes } =
       req.body;
 
     const course = await prisma.course.findUnique({
@@ -234,11 +244,21 @@ export const updateCourse = async (req, res) => {
         .json({ message: "Bạn không có quyền sửa khóa học này!" });
     }
 
+    let parsedOutcomes = undefined;
+    if (learningOutcomes !== undefined) {
+      try {
+        parsedOutcomes = typeof learningOutcomes === 'string' ? JSON.parse(learningOutcomes) : learningOutcomes;
+      } catch (e) {
+        console.error("Error parsing learningOutcomes", e);
+      }
+    }
+
     const updateData = {
       title,
       description,
       category,
       price: price ? parseFloat(price) : undefined,
+      ...(parsedOutcomes !== undefined && { learning_outcomes: parsedOutcomes }),
     };
 
     // Nếu Lecturer là người sửa, tự động chuyển status về PENDING để Admin duyệt lại
@@ -249,7 +269,7 @@ export const updateCourse = async (req, res) => {
       if (admin_comment) updateData.admin_comment = admin_comment;
     }
 
-    // Nếu có upload ảnh mới
+    // Nếu người dùng upload ảnh mới, ta sẽ update ảnh
     if (req.file) {
       updateData.thumbnail_url = `/uploads/${req.file.filename}`;
     }
