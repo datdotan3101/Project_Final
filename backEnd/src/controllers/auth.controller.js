@@ -140,12 +140,18 @@ export const forgotPassword = async (req, res) => {
       },
     });
 
+    console.log(`Đang khởi tạo gửi mail từ: ${process.env.EMAIL_USER}`);
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true, // dùng SSL
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
+      tls: {
+        rejectUnauthorized: false // Chấp nhận các kết nối không an toàn tạm thời
+      }
     });
 
     const mailOptions = {
@@ -169,21 +175,26 @@ export const forgotPassword = async (req, res) => {
     };
 
     try {
-      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-        await transporter.sendMail(mailOptions);
-      } else {
+      if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
         console.log("------------------------------------------");
-        console.log(`Email check: ${email}`);
-        console.log(`Mã OTP của bạn là: ${otp}`);
+        console.log(`[CẢNH BÁO] Chưa cấu hình EMAIL_USER/PASS trong .env`);
+        console.log(`Mã OTP của ${email} là: ${otp}`);
         console.log("------------------------------------------");
+        return res.status(200).json({
+          message: "⚠️ System Dev: Xem mã OTP trong Terminal (Chưa cấu hình Email).",
+        });
       }
+
+      await transporter.sendMail(mailOptions);
+      res.status(200).json({
+        message: "Mã OTP đã được gửi tới email của bạn!",
+      });
     } catch (mailError) {
       console.error("Lỗi gửi email:", mailError);
+      res.status(500).json({ 
+        message: "Không thể gửi email xác thực. Vui lòng kiểm tra lại cấu hình SMTP." 
+      });
     }
-
-    res.status(200).json({
-      message: "Mã OTP đã được gửi tới email của bạn!",
-    });
   } catch (error) {
     console.error(error);
     res

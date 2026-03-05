@@ -189,6 +189,10 @@ export const getCourseById = async (req, res) => {
               // Không nên trả về content_url_or_text (video) nếu chưa mua,
               // nhưng ở bước này ta cứ trả về để test FE trước.
             },
+            quizzes: {
+              orderBy: { order_index: "asc" },
+              include: { questions: true }
+            }
           },
         },
         reviews: true, // Lấy kèm các đánh giá
@@ -566,3 +570,72 @@ export const getAdminCourses = async (req, res) => {
     res.status(500).json({ message: "Lỗi Server" });
   }
 };
+
+// [POST] Tạo Quiz cho một Section
+export const createQuiz = async (req, res) => {
+  try {
+    const { sectionId } = req.params;
+    const { title, order_index, questions } = req.body;
+
+    if (!title || !questions || !Array.isArray(questions)) {
+      return res.status(400).json({ message: "Dữ liệu bài test không đầy đủ!" });
+    }
+
+    const section = await prisma.section.findUnique({
+      where: { id: parseInt(sectionId) },
+      include: { course: true },
+    });
+
+    if (!section) {
+      return res.status(404).json({ message: "Không tìm thấy chương này!" });
+    }
+
+    // So sánh linh hoạt hơn giữa string và number
+    if (section.course.lecturer_id != req.user.id && req.user.role !== "ADMIN") {
+      return res.status(403).json({ message: "Bạn không có quyền thêm bài test vào phần này!" });
+    }
+
+    const newQuiz = await prisma.quiz.create({
+      data: {
+        title,
+        order_index: parseInt(order_index || 0),
+        section_id: parseInt(sectionId),
+        questions: {
+          create: questions.map(q => ({
+            question_text: q.question_text,
+            options: q.options,
+            correct_answer: parseInt(q.correct_answer || 0)
+          }))
+        }
+      },
+      include: { questions: true }
+    });
+
+    res.status(201).json({ message: "Tạo bài test thành công!", quiz: newQuiz });
+  } catch (error) {
+    console.error("Error creating quiz:", error);
+    res.status(500).json({ message: "Lỗi Server: " + error.message });
+  }
+};
+
+// [DELETE] Xóa Quiz
+export const deleteQuiz = async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const quiz = await prisma.quiz.findUnique({
+      where: { id: parseInt(quizId) },
+      include: { section: { include: { course: true } } }
+    });
+
+    if (!quiz) return res.status(404).json({ message: "Không tìm thấy bài test!" });
+    if (quiz.section.course.lecturer_id !== req.user.id && req.user.role !== "ADMIN") {
+      return res.status(403).json({ message: "Bạn không có quyền xóa bài test này!" });
+    }
+
+    await prisma.quiz.delete({ where: { id: parseInt(quizId) } });
+    res.status(200).json({ message: "Đã xóa bài test thành công!" });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi khi xóa bài test." });
+  }
+};
+

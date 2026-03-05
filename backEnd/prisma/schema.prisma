@@ -43,6 +43,7 @@ model User {
   enrollments   Enrollment[]
   reviews       Review[]
   progress      LessonProgress[]
+  quizAttempts  QuizAttempt[]
   wishlists     Wishlist[]
 
   resetPasswordToken   String?
@@ -83,6 +84,7 @@ model Section {
   course_id   Int
   course      Course   @relation(fields: [course_id], references: [id], onDelete: Cascade)
   lessons     Lesson[]
+  quizzes     Quiz[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -102,6 +104,49 @@ model Lesson {
 
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
+}
+
+model Quiz {
+  id          Int      @id @default(autoincrement())
+  title       String
+  order_index Int      @default(0)
+  
+  // Relations
+  section_id  Int
+  section     Section  @relation(fields: [section_id], references: [id], onDelete: Cascade)
+  questions   Question[]
+  attempts    QuizAttempt[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Question {
+  id             Int      @id @default(autoincrement())
+  question_text  String
+  options        String[]
+  correct_answer Int      @default(0)
+
+  // Relations
+  quiz_id        Int
+  quiz           Quiz     @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model QuizAttempt {
+  id           Int      @id @default(autoincrement())
+  score        Float
+  completedAt  DateTime @default(now())
+
+  // Relations
+  student_id   Int
+  student      User     @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  quiz_id      Int
+  quiz         Quiz     @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+
+  @@unique([student_id, quiz_id])
 }
 
 model Enrollment {

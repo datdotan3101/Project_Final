@@ -16,6 +16,8 @@ import {
   getLecturerCourses,
   reorderLessons,
   getAdminCourses,
+  createQuiz,
+  deleteQuiz,
 } from "../controllers/course.controller.js";
 
 const router = express.Router();
@@ -53,6 +55,14 @@ router.post(
   authorize("LECTURER", "ADMIN"),
   upload.single("video"), // Bắt field form-data có tên là 'video'
   createLesson,
+);
+
+// 4. LECTURER: Tạo Quiz trong Section
+router.post(
+  "/sections/:sectionId/quizzes",
+  authenticate,
+  authorize("LECTURER", "ADMIN"),
+  createQuiz,
 );
 
 router.get("/", getAllCourses);
@@ -105,6 +115,12 @@ router.delete(
   authenticate,
   authorize("LECTURER", "ADMIN"),
   deleteLesson,
+);
+router.delete(
+  "/quizzes/:quizId",
+  authenticate,
+  authorize("LECTURER", "ADMIN"),
+  deleteQuiz,
 );
 
 export default router;
