@@ -14,9 +14,25 @@ const CourseDetail = () => {
   const [showModModal, setShowModModal] = useState(false);
   const [modStatus, setModStatus] = useState(null); // APPROVED or REJECTED
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewVideoUrl, setPreviewVideoUrl] = useState(null);
 
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const handlePreviewClick = () => {
+    // Find the first video lesson across all sections
+    const firstVideo = course?.sections
+      ?.flatMap((s) => s.lessons || [])
+      ?.find((l) => l?.content_type === "VIDEO" && l?.content_url_or_text);
+
+    if (firstVideo) {
+      setPreviewVideoUrl(`http://localhost:5000${firstVideo.content_url_or_text}`);
+      setShowPreviewModal(true);
+    } else {
+      alert("Không có video giới thiệu cho khóa học này.");
+    }
+  };
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -414,9 +430,22 @@ const CourseDetail = () => {
                             </span>
                             {lesson.title}
                           </div>
-                          <div className="text-slate-500 underline text-xs cursor-pointer">
-                            Preview
-                          </div>
+                          {lesson.content_type === "VIDEO" && lesson.content_url_or_text ? (
+                            <div 
+                              className="text-blue-400 font-bold hover:text-blue-300 underline text-xs cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewVideoUrl(`http://localhost:5000${lesson.content_url_or_text}`);
+                                setShowPreviewModal(true);
+                              }}
+                            >
+                              Preview
+                            </div>
+                          ) : (
+                            <div className="text-slate-500 text-[10px] uppercase font-bold">
+                              {lesson.content_type || "N/A"}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -543,7 +572,7 @@ const CourseDetail = () => {
         <div className="w-full md:w-[340px] flex-shrink-0 order-1 md:order-2">
           <div className="sticky top-12 bg-[#1c1d1f] border border-slate-700 shadow-2xl overflow-hidden">
             {/* Preview Image */}
-            <div className="relative group cursor-pointer">
+            <div className="relative group cursor-pointer" onClick={handlePreviewClick}>
               <img
                 src={`http://localhost:5000${course.thumbnail_url}`}
                 className="w-full aspect-video object-cover"
@@ -670,6 +699,41 @@ const CourseDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Video Preview Modal */}
+      {showPreviewModal && (
+        <div className="fixed inset-0 bg-black/90 z-[300] flex items-center justify-center p-4">
+          <div className="w-full max-w-4xl bg-black rounded-lg overflow-hidden relative shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-4 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-10 w-full opacity-0 hover:opacity-100 transition-opacity">
+              <h3 className="text-white font-bold text-lg drop-shadow-md">Course Preview</h3>
+              <button 
+                onClick={() => setShowPreviewModal(false)}
+                className="text-white hover:text-red-500 font-bold p-2 drop-shadow-md transition"
+              >
+                ✕ Close
+              </button>
+            </div>
+            {previewVideoUrl ? (
+              <video 
+                src={previewVideoUrl} 
+                controls 
+                autoPlay 
+                className="w-full h-auto max-h-[80vh] outline-none"
+              />
+            ) : (
+              <div className="p-16 text-slate-400 text-center text-lg font-medium">Video preview not available</div>
+            )}
+            
+            {/* Fallback close button outside video hover area */}
+            <button 
+              onClick={() => setShowPreviewModal(false)}
+              className="absolute top-4 right-4 w-10 h-10 bg-black/50 hover:bg-red-500 rounded-full text-white flex items-center justify-center transition z-20 backdrop-blur-sm shadow-xl border border-white/10"
+            >
+              <span className="material-symbols-outlined text-xl">close</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
