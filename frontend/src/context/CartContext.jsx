@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import Toast from "../components/Toast";
 
 const CartContext = createContext();
 
@@ -55,30 +56,7 @@ export const CartProvider = ({ children }) => {
     >
       {children}
       {/* Custom Toast UI */}
-      {toast && (
-        <div
-          className={`fixed bottom-8 right-8 z-[9999] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300 border ${
-            toast.type === "success"
-              ? "bg-[#1e293b] text-white border-blue-500/30"
-              : "bg-[#1e293b] text-white border-red-500/30"
-          }`}
-        >
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              toast.type === "success"
-                ? "bg-blue-600/20 text-blue-400"
-                : "bg-red-600/20 text-red-400"
-            }`}
-          >
-            <span className="material-symbols-outlined text-[20px]">
-              {toast.type === "success" ? "check_circle" : "error"}
-            </span>
-          </div>
-          <span className="font-bold text-sm tracking-wide">
-            {toast.message}
-          </span>
-        </div>
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} />}
     </CartContext.Provider>
   );
 };

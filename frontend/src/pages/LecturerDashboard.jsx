@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import Toast from "../components/Toast";
 
 const LecturerDashboard = () => {
   const [myCourses, setMyCourses] = useState([]);
@@ -616,36 +617,7 @@ const LecturerDashboard = () => {
       </div>
 
       {/* Custom Toast UI */}
-      {toast && (
-        <div
-          className={`fixed bottom-8 right-8 z-[9999] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300 border ${
-            toast.type === "success"
-              ? "bg-[#1e293b] text-white border-green-500/30"
-              : "bg-[#1e293b] text-white border-red-500/30"
-          }`}
-        >
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              toast.type === "success"
-                ? "bg-green-600/20 text-green-400"
-                : "bg-red-600/20 text-red-400"
-            }`}
-          >
-            {toast.type === "success" ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            )}
-          </div>
-          <span className="font-bold text-sm tracking-wide">
-            {toast.message}
-          </span>
-        </div>
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} />}
 
       {/* Delete Confirmation Modal */}
       {deleteModal.isOpen && (

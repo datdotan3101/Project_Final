@@ -1,0 +1,38 @@
+[
+  {
+    "table_name": "Enrollment"
+  },
+  {
+    "table_name": "Review"
+  },
+  {
+    "table_name": "LessonProgress"
+  },
+  {
+    "table_name": "Course"
+  },
+  {
+    "table_name": "Section"
+  },
+  {
+    "table_name": "Lesson"
+  },
+  {
+    "table_name": "User"
+  },
+  {
+    "table_name": "Notification"
+  },
+  {
+    "table_name": "Wishlist"
+  },
+  {
+    "table_name": "Quiz"
+  },
+  {
+    "table_name": "Question"
+  },
+  {
+    "table_name": "QuizAttempt"
+  }
+]

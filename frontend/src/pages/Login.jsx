@@ -1,35 +1,36 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { useNavigate, Link } from "react-router-dom"; // Import thêm Link từ react-router-dom
+import { useNavigate, useLocation, Link } from "react-router-dom"; // Import thêm Link từ react-router-dom
 import { useAuth } from "../context/AuthContext";
+import { GoogleLogin } from "@react-oauth/google";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const { login } = useAuth(); // 2. Lấy hàm login từ Context
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
       const response = await axios.post(
         "http://localhost:5000/api/auth/login",
-        {
-          email,
-          password,
-        },
+        { email, password }
       );
 
       const { token, user } = response.data;
-
-      // 3. Sử dụng hàm login từ Context thay vì ghi trực tiếp vào localStorage
       login(user, token);
 
-      if (user.role === "ADMIN") {
+      if (location.state?.from) {
+        navigate(location.state.from);
+      } else if (user.role === "ADMIN") {
         navigate("/admin/dashboard");
       } else if (user.role === "LECTURER") {
         navigate("/lecturer/dashboard");
@@ -37,12 +38,37 @@ const Login = () => {
         navigate("/");
       }
     } catch (err) {
-      if (err.response && err.response.data) {
-        setError(err.response.data.message);
-      } else {
-        setError("Có lỗi xảy ra, vui lòng thử lại!");
-      }
+      setError(err.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại!");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError("");
+    setLoading(true);
+    try {
+      const response = await axios.post("http://localhost:5000/api/auth/google-login", {
+        token: credentialResponse.credential,
+      });
+
+      const { token, user } = response.data;
+      login(user, token);
+
+      if (location.state?.from) {
+        navigate(location.state.from);
+      } else {
+        navigate("/");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Đăng nhập Google thất bại!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError("Lỗi khi đăng nhập bằng Google!");
   };
 
   return (
@@ -96,11 +122,33 @@ const Login = () => {
 
           <button
             type="submit"
-            className="mt-2 p-3 bg-blue-600 text-white font-bold rounded-md hover:bg-blue-700 transition duration-200"
+            disabled={loading}
+            className="mt-2 p-3 bg-blue-600 text-white font-bold rounded-md hover:bg-blue-700 transition duration-200 disabled:bg-blue-400"
           >
-            Đăng Nhập
+            {loading ? "Đang xử lý..." : "Đăng Nhập"}
           </button>
         </form>
+
+        <div className="mt-4 flex flex-col items-center">
+          <div className="relative w-full mb-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500 font-medium whitespace-nowrap">hoặc đăng nhập bằng</span>
+            </div>
+          </div>
+          
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            useOneTap
+            theme="filled_blue"
+            text="signin_with"
+            shape="rectangular"
+            width="100%"
+          />
+        </div>
 
         {/* --- Link Redirect to Register --- */}
         <p className="mt-6 text-center text-sm text-gray-600">

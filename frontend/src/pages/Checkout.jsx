@@ -62,22 +62,47 @@ const Checkout = () => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.post(
-        "http://localhost:5000/api/checkout",
-        { courseIds: courseIds },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const isGift = !!location.state?.giftData;
 
-      // Xóa các khóa học đã mua khỏi giỏ hàng
-      courseIds.forEach((courseId) => removeFromCart(courseId));
-
-      setTimeout(() => {
-        setProcessing(false);
-        alert(
-          "🎉 Thanh toán thành công! Khóa học đã được thêm vào tài khoản của bạn.",
+      if (isGift) {
+        // Giao thức Tặng quà
+        const { recipientEmail, senderName, message } = location.state.giftData;
+        await axios.post(
+          "http://localhost:5000/api/gifts/buy",
+          {
+            courseIds: courseIds,
+            recipientEmail,
+            senderName,
+            message,
+          },
+          { headers: { Authorization: `Bearer ${token}` } },
         );
-        navigate("/my-learning");
-      }, 2000);
+        
+        setTimeout(() => {
+          setProcessing(false);
+          alert("🎉 Thanh toán thành công! Mã quà tặng đã được gửi đến Email người nhận.");
+          navigate("/my-learning");
+        }, 2000);
+
+      } else {
+        // Giao thức mua bình thường
+        await axios.post(
+          "http://localhost:5000/api/checkout",
+          { courseIds: courseIds },
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+
+        // Xóa các khóa học đã mua khỏi giỏ hàng
+        courseIds.forEach((courseId) => removeFromCart(courseId));
+
+        setTimeout(() => {
+          setProcessing(false);
+          alert(
+            "🎉 Thanh toán thành công! Khóa học đã được thêm vào tài khoản của bạn.",
+          );
+          navigate("/my-learning");
+        }, 2000);
+      }
     } catch (err) {
       setProcessing(false);
       alert(err.response?.data?.message || "Có lỗi xảy ra khi thanh toán.");

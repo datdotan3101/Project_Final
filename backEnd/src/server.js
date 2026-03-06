@@ -10,6 +10,7 @@ import reviewRoutes from "./routes/review.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import wishlistRoutes from "./routes/wishlist.routes.js";
+import giftRoutes from "./routes/gift.routes.js";
 import path from "path";
 
 dotenv.config();
@@ -55,6 +56,9 @@ app.use("/api/notifications", notificationRoutes);
 
 // Wishlist
 app.use("/api/wishlist", wishlistRoutes);
+
+// Gift
+app.use("/api/gifts", giftRoutes);
 
 const PORT = process.env.PORT || 5000;
 

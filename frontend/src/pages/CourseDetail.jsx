@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 
 const CourseDetail = () => {
   const { id } = useParams();
@@ -18,7 +19,23 @@ const CourseDetail = () => {
   const [previewVideoUrl, setPreviewVideoUrl] = useState(null);
 
   const { user } = useAuth();
+  const { addToCart } = useCart();
   const navigate = useNavigate();
+
+  const handleAddToCart = () => {
+    if (!course) return;
+    
+    addToCart({
+      id: course.id,
+      title: course.title,
+      image: course.thumbnail_url ? `http://localhost:5000${course.thumbnail_url}` : "https://via.placeholder.com/400x225?text=Course",
+      price: course.price,
+      instructor: course.lecturer?.name || "Anonymous Expert",
+      rating: 4.8, // Fallback since actual computed rating is mocked in UI
+      reviewsCount: course.reviews?.length || 0,
+      category: course.category,
+    });
+  };
 
   const handlePreviewClick = () => {
     // Find the first video lesson across all sections
@@ -605,46 +622,17 @@ const CourseDetail = () => {
             <div className="p-6">
               {activeTab === "personal" ? (
                 <div className="space-y-6">
-                  <div>
-                    <h3 className="text-xl font-black text-white mb-2 leading-tight">
-                      Subscribe to Udemy's top courses
-                    </h3>
-                    <p className="text-slate-400 text-xs leading-relaxed">
-                      Get this course, plus 39,000+ of our top-rated courses,
-                      with Personal Plan.{" "}
-                      <span className="text-blue-400 underline cursor-pointer">
-                        Learn more
-                      </span>
-                    </p>
-                  </div>
 
-                  <button className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-base transition active:scale-[0.98]">
-                    Start subscription
-                  </button>
-
-                  <div className="text-center">
-                    <div className="text-slate-500 text-[10px]">
-                      Starting at ₫250,000 per month
-                    </div>
-                    <div className="text-slate-500 text-[10px]">
-                      Cancel anytime
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 text-slate-700">
-                    <hr className="flex-1 border-slate-700" />
-                    <span className="text-xs uppercase font-bold text-slate-500">
-                      or
-                    </span>
-                    <hr className="flex-1 border-slate-700" />
-                  </div>
 
                   <div className="text-3xl font-black text-white">
                     ₫{course.price?.toLocaleString("vi-VN")}
                   </div>
 
                   <div className="flex gap-2">
-                    <button className="flex-1 py-3.5 border border-white text-white font-black text-sm hover:bg-slate-800 transition">
+                    <button 
+                      onClick={handleAddToCart}
+                      className="flex-1 py-3.5 border border-white text-white font-black text-sm hover:bg-slate-800 transition"
+                    >
                       Add to cart
                     </button>
                   </div>
@@ -663,7 +651,7 @@ const CourseDetail = () => {
 
                   <div className="flex justify-around text-xs font-bold text-white underline underline-offset-4">
                     <button>Share</button>
-                    <button>Gift this course</button>
+                    <button onClick={() => navigate(`/gift/${course.id}`)}>Gift this course</button>
                     <button>Apply Coupon</button>
                   </div>
 

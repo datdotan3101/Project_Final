@@ -23,26 +23,32 @@ import Cart from "./pages/Cart";
 import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import GiftCourse from "./pages/GiftCourse";
+import RedeemGift from "./pages/RedeemGift";
 import { ChatProvider } from "./context/ChatContext";
 import Chatbot from "./components/Chatbot";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 function App() {
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
   return (
-    <Router>
-      <AuthProvider>
-        <CartProvider>
-          <ChatProvider>
-            <Navbar />
-            <div className="min-h-screen bg-[#0b1120]">
-              <Routes>
-                {/* Tất cả routes giữ nguyên */}
-                <Route
-                  element={
-                    <ProtectedRoute allowedRoles={["STUDENT", "LECTURER"]} />
-                  }
-                >
-                  <Route path="/profile" element={<Profile />} />
-                </Route>
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <Router>
+        <AuthProvider>
+          <CartProvider>
+            <ChatProvider>
+              <Navbar />
+              <div className="min-h-screen bg-[#0b1120]">
+                <Routes>
+                  {/* Tất cả routes giữ nguyên */}
+                  <Route
+                    element={
+                      <ProtectedRoute allowedRoles={["STUDENT", "LECTURER"]} />
+                    }
+                  >
+                    <Route path="/profile" element={<Profile />} />
+                  </Route>
 
                 <Route
                   element={
@@ -57,6 +63,7 @@ function App() {
                   <Route path="/become-lecturer" element={<BecomeLecturer />} />
                   <Route path="/notifications" element={<Notifications />} />
                   <Route path="/cart" element={<Cart />} />
+                  <Route path="/gift/:courseId" element={<GiftCourse />} />
                 </Route>
 
                 <Route path="/" element={<Home />} />
@@ -66,6 +73,7 @@ function App() {
                 <Route path="/courses" element={<Courses />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/redeem/:token" element={<RedeemGift />} />
 
                 <Route
                   element={
@@ -114,6 +122,7 @@ function App() {
         </CartProvider>
       </AuthProvider>
     </Router>
+  </GoogleOAuthProvider>
   );
 }
 
